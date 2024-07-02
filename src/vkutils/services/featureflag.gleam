@@ -29,3 +29,14 @@ pub fn get(
   |> result.map(fn(x) { x == "True" })
   |> result.map_error(parse_radish_error)
 }
+
+pub fn delete(
+  client: process.Subject(radish.Message),
+  namespace: String,
+  flag: String,
+) -> Result(Int, ServiceError) {
+  use key <- result.try(get_key(service, namespace, flag))
+
+  radish.del(client, [key], 128)
+  |> result.map_error(parse_radish_error)
+}
