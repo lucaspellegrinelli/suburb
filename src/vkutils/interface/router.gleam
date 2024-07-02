@@ -2,13 +2,9 @@ import vkutils/interface/routes/flag
 import vkutils/interface/routes/queue
 import vkutils/interface/web.{type Context}
 import wisp.{type Request, type Response}
-import gleam/io
-import gleam/http
 
 pub fn handle_request(req: Request, ctx: Context) -> Response {
   use req <- web.middleware(req, ctx)
-
-  io.debug(req)
 
   case wisp.path_segments(req) {
     ["queue"] -> queue.queue_route(req, ctx)

@@ -2,9 +2,9 @@ import gleam/dynamic.{type Dynamic}
 import gleam/http.{Post}
 import gleam/json
 import gleam/result
-import vkutils/common.{ConnectorError, InvalidKey}
+import vkutils/interface/utils.{construct_response, extract_error, map_both}
 import vkutils/interface/web.{type Context}
-import vkutils/queue
+import vkutils/services/queue
 import wisp.{type Request, type Response}
 
 type QueueRequest {
@@ -25,49 +25,27 @@ fn decode_queue_request(
   decoder(json)
 }
 
-fn call_error(e: common.ServiceError) {
-  case e {
-    common.InvalidKey(e) | common.ConnectorError(e) -> {
-      json.object([
-        #("status", json.string("error")),
-        #("error", json.string(e)),
-      ])
-      |> json.to_string_builder
-      |> wisp.json_response(400)
-    }
-  }
-}
-
-fn construct_response(value: json.Json) {
-  json.object([#("status", json.string("success")), #("response", value)])
-  |> json.to_string_builder
-  |> wisp.json_response(200)
-}
-
 fn perform_request(ctx: Context, r: QueueRequest) {
   case r.action {
-    "length" -> {
-      use length <- result.map(result.map_error(
+    "length" ->
+      map_both(
         queue.length(ctx.client, r.namespace, r.name),
-        call_error,
-      ))
-      construct_response(json.int(length))
-    }
-    "push" -> {
-      use out <- result.map(result.map_error(
+        json.int,
+        extract_error,
+      )
+    "push" ->
+      map_both(
         queue.push(ctx.client, r.namespace, r.name, r.value),
-        call_error,
-      ))
-      construct_response(json.int(out))
-    }
-    "pop" -> {
-      use value <- result.map(result.map_error(
+        json.int,
+        extract_error,
+      )
+    "pop" ->
+      map_both(
         queue.pop(ctx.client, r.namespace, r.name),
-        call_error,
-      ))
-      construct_response(json.string(value))
-    }
-    _ -> Ok(wisp.unprocessable_entity())
+        json.string,
+        extract_error,
+      )
+    _ -> Error(json.string("Invalid action"))
   }
 }
 
@@ -75,7 +53,10 @@ pub fn queue_route(req: Request, ctx: Context) -> Response {
   use <- wisp.require_method(req, Post)
   use json <- wisp.require_json(req)
   case decode_queue_request(json) {
-    Ok(r) -> result.unwrap_both(perform_request(ctx, r))
-    Error(_) -> wisp.unprocessable_entity()
+    Ok(r) ->
+      perform_request(ctx, r)
+      |> result.unwrap_both
+      |> construct_response("success")
+    Error(_) -> json.string("Invalid request") |> construct_response("error")
   }
 }

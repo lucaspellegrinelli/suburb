@@ -2,9 +2,9 @@ import gleam/dynamic.{type Dynamic}
 import gleam/http.{Post}
 import gleam/json
 import gleam/result
-import vkutils/common.{ConnectorError, InvalidKey}
-import vkutils/featureflag
+import vkutils/interface/utils.{construct_response, extract_error, map_both}
 import vkutils/interface/web.{type Context}
+import vkutils/services/featureflag
 import wisp.{type Request, type Response}
 
 type FlagRequest {
@@ -25,45 +25,21 @@ fn decode_flag_request(
   decoder(json)
 }
 
-fn call_error(e: common.ServiceError) {
-  case e {
-    common.InvalidKey(e) | common.ConnectorError(e) -> {
-      json.object([
-        #("status", json.string("error")),
-        #("error", json.string(e)),
-      ])
-      |> json.to_string_builder
-      |> wisp.json_response(400)
-    }
-  }
-}
-
 fn perform_request(ctx: Context, r: FlagRequest) {
   case r.action {
-    "set" -> {
-      use flag <- result.try(result.map_error(
+    "set" ->
+      map_both(
         featureflag.set(ctx.client, r.namespace, r.flag, r.value),
-        call_error,
-      ))
-      json.object([
-        #("status", json.string("ok")),
-        #("value", json.string(flag)),
-      ])
-      |> json.to_string_builder
-      |> wisp.json_response(200)
-      |> Ok
-    }
-    "get" -> {
-      use flag <- result.try(result.map_error(
+        json.string,
+        extract_error,
+      )
+    "get" ->
+      map_both(
         featureflag.get(ctx.client, r.namespace, r.flag),
-        call_error,
-      ))
-      json.object([#("status", json.string("ok")), #("value", json.bool(flag))])
-      |> json.to_string_builder
-      |> wisp.json_response(200)
-      |> Ok
-    }
-    _ -> Ok(wisp.unprocessable_entity())
+        json.bool,
+        extract_error,
+      )
+    _ -> Error(json.string("Invalid action"))
   }
 }
 
@@ -71,7 +47,10 @@ pub fn flag_route(req: Request, ctx: Context) -> Response {
   use <- wisp.require_method(req, Post)
   use json <- wisp.require_json(req)
   case decode_flag_request(json) {
-    Ok(r) -> result.unwrap_both(perform_request(ctx, r))
-    Error(_) -> wisp.unprocessable_entity()
+    Ok(r) ->
+      perform_request(ctx, r)
+      |> result.unwrap_both
+      |> construct_response("success")
+    Error(_) -> json.string("Invalid request") |> construct_response("error")
   }
 }
