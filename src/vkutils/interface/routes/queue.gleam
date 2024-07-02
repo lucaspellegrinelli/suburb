@@ -1,8 +1,7 @@
 import gleam/dynamic
 import gleam/http
 import gleam/json
-import gleam/result
-import vkutils/interface/utils.{construct_response, extract_error, map_both}
+import vkutils/interface/utils.{construct_response, extract_error}
 import vkutils/interface/web.{type Context}
 import vkutils/services/queue
 import wisp.{type Request, type Response}
@@ -14,10 +13,10 @@ pub fn queue_length_route(
   queue_name: String,
 ) -> Response {
   use <- wisp.require_method(req, http.Get)
-  queue.length(ctx.client, namespace, queue_name)
-  |> map_both(json.int, extract_error)
-  |> result.unwrap_both
-  |> construct_response("success")
+  case queue.length(ctx.client, namespace, queue_name) {
+    Ok(length) -> length |> json.int |> construct_response("success", 200)
+    Error(e) -> e |> extract_error |> construct_response("error", 404)
+  }
 }
 
 pub fn queue_push_route(
@@ -32,13 +31,13 @@ pub fn queue_push_route(
 
   case value {
     Ok(value) -> {
-      queue.push(ctx.client, namespace, queue_name, value)
-      |> map_both(json.int, extract_error)
-      |> result.unwrap_both
-      |> construct_response("success")
+      case queue.push(ctx.client, namespace, queue_name, value) {
+        Ok(value) -> value |> json.int |> construct_response("success", 200)
+        Error(e) -> e |> extract_error |> construct_response("error", 404)
+      }
     }
     Error(_) ->
-      json.string("Couldn't parse value") |> construct_response("error")
+      json.string("Couldn't parse value") |> construct_response("error", 400)
   }
 }
 
@@ -49,8 +48,8 @@ pub fn queue_pop_route(
   queue_name: String,
 ) -> Response {
   use <- wisp.require_method(req, http.Delete)
-  queue.pop(ctx.client, namespace, queue_name)
-  |> map_both(json.string, extract_error)
-  |> result.unwrap_both
-  |> construct_response("success")
+  case queue.pop(ctx.client, namespace, queue_name) {
+    Ok(value) -> value |> json.string |> construct_response("success", 200)
+    Error(e) -> e |> extract_error |> construct_response("error", 404)
+  }
 }
