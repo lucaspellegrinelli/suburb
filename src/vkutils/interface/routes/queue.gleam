@@ -6,7 +6,7 @@ import vkutils/interface/web.{type Context}
 import vkutils/services/queue
 import wisp.{type Request, type Response}
 
-pub fn queue_length_route(
+pub fn length_route(
   req: Request,
   ctx: Context,
   namespace: String,
@@ -19,7 +19,7 @@ pub fn queue_length_route(
   }
 }
 
-pub fn queue_push_route(
+pub fn push_route(
   req: Request,
   ctx: Context,
   namespace: String,
@@ -41,7 +41,7 @@ pub fn queue_push_route(
   }
 }
 
-pub fn queue_pop_route(
+pub fn pop_route(
   req: Request,
   ctx: Context,
   namespace: String,

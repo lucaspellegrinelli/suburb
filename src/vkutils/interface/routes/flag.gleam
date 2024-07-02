@@ -6,7 +6,7 @@ import vkutils/interface/web.{type Context}
 import vkutils/services/featureflag
 import wisp.{type Request, type Response}
 
-pub fn flag_get_route(
+pub fn get_route(
   req: Request,
   ctx: Context,
   namespace: String,
@@ -19,7 +19,7 @@ pub fn flag_get_route(
   }
 }
 
-pub fn flag_set_route(
+pub fn set_route(
   req: Request,
   ctx: Context,
   namespace: String,
@@ -40,7 +40,7 @@ pub fn flag_set_route(
   }
 }
 
-pub fn flag_delete_route(
+pub fn delete_route(
   req: Request,
   ctx: Context,
   namespace: String,
