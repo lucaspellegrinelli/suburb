@@ -2,12 +2,21 @@ import gleam/bool
 import gleam/string
 import radish/error
 
-pub type ProjectError {
+pub type ServiceError {
   InvalidKey(String)
   ConnectorError(String)
 }
 
-pub fn get_key(namespace: String, name: String) -> Result(String, ProjectError) {
+pub fn get_key(
+  service: String,
+  namespace: String,
+  name: String,
+) -> Result(String, ServiceError) {
+  use <- bool.guard(
+    string.is_empty(service),
+    Error(InvalidKey("Service name cannot be empty")),
+  )
+
   use <- bool.guard(
     string.is_empty(namespace),
     Error(InvalidKey("Namespace name cannot be empty")),
@@ -16,6 +25,11 @@ pub fn get_key(namespace: String, name: String) -> Result(String, ProjectError) 
   use <- bool.guard(
     string.is_empty(name),
     Error(InvalidKey("Name cannot be empty")),
+  )
+
+  use <- bool.guard(
+    string.contains(service, ":"),
+    Error(InvalidKey("Service name cannot contain ':'")),
   )
 
   use <- bool.guard(
@@ -28,10 +42,10 @@ pub fn get_key(namespace: String, name: String) -> Result(String, ProjectError) 
     Error(InvalidKey("Name cannot contain ':'")),
   )
 
-  Ok(string.concat([namespace, ":", name]))
+  Ok(string.concat([service, ":", namespace, ":", name]))
 }
 
-pub fn parse_radish_error(e: error.Error) -> ProjectError {
+pub fn parse_radish_error(e: error.Error) -> ServiceError {
   case e {
     error.NotFound -> ConnectorError("Queue not found")
     error.RESPError -> ConnectorError("Error in RESP protocol")

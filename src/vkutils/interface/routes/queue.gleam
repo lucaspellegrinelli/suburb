@@ -25,7 +25,7 @@ fn decode_queue_request(
   decoder(json)
 }
 
-fn call_error(e: common.ProjectError) {
+fn call_error(e: common.ServiceError) {
   case e {
     common.InvalidKey(e) | common.ConnectorError(e) -> {
       json.object([
