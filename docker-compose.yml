@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  valkey:
+    image: valkey/valkey:latest
+    ports:
+      - "6379:6379"
+
+  gleamwhat:
+    image: gleamwhat
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    depends_on:
+      - valkey
+    ports:
+      - "7777:8080"
+    environment:
+      - PORT=8080
+      - VALKEY_PORT=6379
+      - VALKEY_HOST=valkey
+      - API_SECRET=secret123
