@@ -4,8 +4,8 @@ import gleam/int
 import gleam/io
 import mist
 import radish
-import vkutils/interface/router
-import vkutils/interface/web.{Context}
+import suburb/interface/router
+import suburb/interface/web.{Context}
 import wisp
 
 fn get_env_int(name: String, default: Int) -> Int {

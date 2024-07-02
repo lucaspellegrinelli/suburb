@@ -1,7 +1,7 @@
 import gleam/http.{Delete, Get, Post}
-import vkutils/interface/routes/flag
-import vkutils/interface/routes/queue
-import vkutils/interface/web.{type Context}
+import suburb/interface/routes/flag
+import suburb/interface/routes/queue
+import suburb/interface/web.{type Context}
 import wisp.{type Request, type Response}
 
 pub fn handle_request(req: Request, ctx: Context) -> Response {

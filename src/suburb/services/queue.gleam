@@ -2,7 +2,7 @@ import gleam/erlang/process
 import gleam/result
 import radish
 import radish/list
-import vkutils/common.{type ServiceError, get_key, parse_radish_error}
+import suburb/common.{type ServiceError, get_key, parse_radish_error}
 
 const service = "queue"
 

@@ -1,20 +1,20 @@
-# vkutils
+# suburb
 
-[![Package Version](https://img.shields.io/hexpm/v/vkutils)](https://hex.pm/packages/vkutils)
-[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/vkutils/)
+[![Package Version](https://img.shields.io/hexpm/v/suburb)](https://hex.pm/packages/suburb)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/suburb/)
 
 ```sh
-gleam add vkutils
+gleam add suburb
 ```
 ```gleam
-import vkutils
+import suburb
 
 pub fn main() {
   // TODO: An example of the project in use
 }
 ```
 
-Further documentation can be found at <https://hexdocs.pm/vkutils>.
+Further documentation can be found at <https://hexdocs.pm/suburb>.
 
 ## Development
 

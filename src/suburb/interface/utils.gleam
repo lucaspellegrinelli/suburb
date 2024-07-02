@@ -1,5 +1,5 @@
 import gleam/json
-import vkutils/common.{ConnectorError, InvalidKey}
+import suburb/common.{ConnectorError, InvalidKey}
 import wisp
 
 pub fn extract_error(e: common.ServiceError) {

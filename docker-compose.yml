@@ -6,8 +6,8 @@ services:
     ports:
       - "6379:6379"
 
-  gleamwhat:
-    image: gleamwhat
+  suburb:
+    image: suburb
     build:
       context: .
       dockerfile: ./Dockerfile

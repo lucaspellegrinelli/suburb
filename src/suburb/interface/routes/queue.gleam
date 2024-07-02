@@ -1,9 +1,9 @@
 import gleam/dynamic
 import gleam/http
 import gleam/json
-import vkutils/interface/utils.{construct_response, extract_error}
-import vkutils/interface/web.{type Context}
-import vkutils/services/queue
+import suburb/interface/utils.{construct_response, extract_error}
+import suburb/interface/web.{type Context}
+import suburb/services/queue
 import wisp.{type Request, type Response}
 
 pub fn length_route(
