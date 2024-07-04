@@ -15,13 +15,13 @@ CREATE TABLE IF NOT EXISTS queued_values (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     queue_id INTEGER,
     content TEXT,
-    consumed BOOLEAN DEFAULT 0,
+    consumed_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(queue_id) REFERENCES queues(id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_queued_values_queue_id_consumed ON queued_values (queue_id, consumed);
 CREATE INDEX IF NOT EXISTS idx_queues_queue_name_namespace ON queues (queue_name, namespace);
+CREATE INDEX IF NOT EXISTS idx_queued_values_queue_id_consumed_at ON queued_values (queue_id, consumed_at);
 "
 
 pub fn db_connection(f: fn(sqlight.Connection) -> a) {

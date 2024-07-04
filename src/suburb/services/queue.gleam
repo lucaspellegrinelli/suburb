@@ -21,7 +21,7 @@ const length_query = "
     JOIN queues q ON qv.queue_id = q.id
     WHERE q.queue_name = ?
       AND q.namespace = ?
-      AND qv.consumed = 0
+      AND qv.consumed_at IS NULL
   "
 
 const create_query = "
@@ -43,14 +43,14 @@ const pop_get_query = "
     JOIN queues q ON qv.queue_id = q.id
     WHERE q.queue_name = ?
       AND q.namespace = ?
-      AND qv.consumed = 0
+      AND qv.consumed_at IS NULL
     ORDER BY qv.id ASC
     LIMIT 1
   "
 
 const pop_update_query = "
     UPDATE queued_values
-    SET consumed = 1
+    SET consumed_at = CURRENT_TIMESTAMP
     WHERE id = ?
   "
 
@@ -60,7 +60,7 @@ const peek_query = "
     JOIN queues q ON qv.queue_id = q.id
     WHERE q.queue_name = ?
       AND q.namespace = ?
-      AND qv.consumed = 0
+      AND qv.consumed_at IS NULL
     ORDER BY qv.id ASC
     LIMIT 1
   "
