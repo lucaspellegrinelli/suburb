@@ -2,7 +2,7 @@ import envoy
 import gleam/io
 import glint
 
-pub fn remote_set() -> glint.Command(Nil) {
+pub fn set() -> glint.Command(Nil) {
   use <- glint.command_help("Sets the remote server host and API key")
   use host <- glint.named_arg("remote host")
   use api_key <- glint.named_arg("remote api key")
@@ -12,7 +12,7 @@ pub fn remote_set() -> glint.Command(Nil) {
   envoy.set("SUBURB_REMOTE_API_KEY", api_key(named))
 }
 
-pub fn remote_get() -> glint.Command(Nil) {
+pub fn get() -> glint.Command(Nil) {
   use <- glint.command_help("Gets the remote server host and API key")
   use _, _, _ <- glint.command()
 

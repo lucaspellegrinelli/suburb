@@ -3,12 +3,12 @@ import gleam/http
 import gleam/json
 import suburb/api/utils.{construct_response, extract_error}
 import suburb/api/web.{type Context}
-import suburb/services/featureflag
+import suburb/services/flag
 import wisp.{type Request, type Response}
 
 pub fn list_route(req: Request, ctx: Context, namespace: String) -> Response {
   use <- wisp.require_method(req, http.Get)
-  case featureflag.list(ctx.conn, namespace) {
+  case flag.list(ctx.conn, namespace) {
     Ok(values) ->
       values
       |> json.array(of: json.string)
@@ -21,11 +21,11 @@ pub fn get_route(
   req: Request,
   ctx: Context,
   namespace: String,
-  queue: String,
+  flag: String,
 ) -> Response {
   use <- wisp.require_method(req, http.Get)
-  case featureflag.get(ctx.conn, namespace, queue) {
-    Ok(value) -> value |> json.bool |> construct_response("success", 200)
+  case flag.get(ctx.conn, namespace, flag) {
+    Ok(value) -> value |> json.string |> construct_response("success", 200)
     Error(e) -> e |> extract_error |> construct_response("error", 404)
   }
 }
@@ -34,15 +34,15 @@ pub fn set_route(
   req: Request,
   ctx: Context,
   namespace: String,
-  queue: String,
+  flag: String,
 ) -> Response {
   use <- wisp.require_method(req, http.Post)
   use json <- wisp.require_json(req)
-  let value = json |> dynamic.field("value", dynamic.bool)
+  let value = json |> dynamic.field("value", dynamic.string)
 
   case value {
     Ok(value) ->
-      case featureflag.set(ctx.conn, namespace, queue, value) {
+      case flag.set(ctx.conn, namespace, flag, value) {
         Ok(_) -> "set" |> json.string |> construct_response("success", 200)
         Error(e) -> e |> extract_error |> construct_response("error", 404)
       }
@@ -55,10 +55,10 @@ pub fn delete_route(
   req: Request,
   ctx: Context,
   namespace: String,
-  queue: String,
+  flag: String,
 ) -> Response {
   use <- wisp.require_method(req, http.Delete)
-  case featureflag.delete(ctx.conn, namespace, queue) {
+  case flag.delete(ctx.conn, namespace, flag) {
     Ok(_) -> "deleted" |> json.string |> construct_response("success", 200)
     Error(e) -> e |> extract_error |> construct_response("error", 404)
   }

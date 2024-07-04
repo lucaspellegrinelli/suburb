@@ -56,7 +56,7 @@ fn flag_is_created(
   case list.first(result) {
     Ok(1) -> Ok(True)
     Ok(0) -> Ok(False)
-    _ -> Error(ConnectorError("Failed to check if feature_flag exists."))
+    _ -> Error(ConnectorError("Failed to check if feature flag exists."))
   }
 }
 
@@ -64,23 +64,13 @@ pub fn set(
   conn: sqlight.Connection,
   namespace: String,
   name: String,
-  value: Bool,
+  value: String,
 ) -> Result(Nil, ServiceError) {
-  use exists <- result.try(flag_is_created(conn, namespace, name))
-  use <- bool.guard(
-    exists,
-    Error(ResourceDoesNotExist("Feature Flag " <> name <> " does not exist.")),
-  )
-
   let query =
     sqlight.query(
       set_flag,
       on: conn,
-      with: [
-        sqlight.text(bool.to_string(value)),
-        sqlight.text(name),
-        sqlight.text(namespace),
-      ],
+      with: [sqlight.text(namespace), sqlight.text(name), sqlight.text(value)],
       expecting: dynamic.element(0, dynamic.int),
     )
 
@@ -94,10 +84,10 @@ pub fn get(
   conn: sqlight.Connection,
   namespace: String,
   name: String,
-) -> Result(Bool, ServiceError) {
+) -> Result(String, ServiceError) {
   use exists <- result.try(flag_is_created(conn, namespace, name))
   use <- bool.guard(
-    exists,
+    !exists,
     Error(ResourceDoesNotExist("Feature Flag " <> name <> " does not exist.")),
   )
 
@@ -114,11 +104,7 @@ pub fn get(
     ConnectorError("Failed to get feature flag."),
   ))
 
-  case list.first(result) {
-    Ok("True") -> Ok(True)
-    Ok(_) -> Ok(False)
-    _ -> Error(ConnectorError("Failed to get feature flag."))
-  }
+  Ok(result.unwrap(list.first(result), ""))
 }
 
 pub fn delete(
@@ -128,7 +114,7 @@ pub fn delete(
 ) -> Result(Nil, ServiceError) {
   use exists <- result.try(flag_is_created(conn, namespace, name))
   use <- bool.guard(
-    exists,
+    !exists,
     Error(ResourceDoesNotExist("Feature Flag " <> name <> " does not exist.")),
   )
 
