@@ -1,42 +1,147 @@
-// import gleam/bool
-// import gleam/erlang/process
-// import gleam/result
-// import radish
-// import suburb/common.{type ServiceError, get_key, parse_radish_error}
+import gleam/bool
+import gleam/dynamic
+import gleam/list
+import gleam/result
+import sqlight
+import suburb/common.{type ServiceError, ConnectorError, ResourceDoesNotExist}
 
-// const service = "featureflag"
+const list_flags = "SELECT flag FROM feature_flags WHERE namespace = ?"
 
-// pub fn set(
-//   client: process.Subject(radish.Message),
-//   namespace: String,
-//   flag: String,
-//   value: Bool,
-// ) -> Result(String, ServiceError) {
-//   use key <- result.try(get_key(service, namespace, flag))
+const is_created_flag = "SELECT EXISTS(SELECT 1 FROM feature_flags WHERE flag = ? AND namespace = ?)"
 
-//   radish.set(client, key, bool.to_string(value), 128)
-//   |> result.map_error(parse_radish_error)
-// }
+const delete_flag = "DELETE FROM feature_flags WHERE flag = ? AND namespace = ?"
 
-// pub fn get(
-//   client: process.Subject(radish.Message),
-//   namespace: String,
-//   flag: String,
-// ) -> Result(Bool, ServiceError) {
-//   use key <- result.try(get_key(service, namespace, flag))
+const set_flag = "
+    INSERT INTO feature_flags (namespace, flag, value)
+    VALUES (?, ?, ?)
+    ON CONFLICT(flag, namespace)
+    DO UPDATE SET value = excluded.value;
+  "
 
-//   radish.get(client, key, 128)
-//   |> result.map(fn(x) { x == "True" })
-//   |> result.map_error(parse_radish_error)
-// }
+const get_flag = "SELECT value FROM feature_flags WHERE flag = ? AND namespace = ?"
 
-// pub fn delete(
-//   client: process.Subject(radish.Message),
-//   namespace: String,
-//   flag: String,
-// ) -> Result(Int, ServiceError) {
-//   use key <- result.try(get_key(service, namespace, flag))
+pub fn list(
+  conn: sqlight.Connection,
+  namespace: String,
+) -> Result(List(String), ServiceError) {
+  let query =
+    sqlight.query(
+      list_flags,
+      on: conn,
+      with: [sqlight.text(namespace)],
+      expecting: dynamic.element(0, dynamic.string),
+    )
 
-//   radish.del(client, [key], 128)
-//   |> result.map_error(parse_radish_error)
-// }
+  result.replace_error(query, ConnectorError("Failed to list feature flags."))
+}
+
+fn flag_is_created(
+  conn: sqlight.Connection,
+  namespace: String,
+  name: String,
+) -> Result(Bool, ServiceError) {
+  let query =
+    sqlight.query(
+      is_created_flag,
+      on: conn,
+      with: [sqlight.text(name), sqlight.text(namespace)],
+      expecting: dynamic.element(0, dynamic.int),
+    )
+
+  use result <- result.try(result.replace_error(
+    query,
+    ConnectorError("Failed to check if feature flag exists."),
+  ))
+
+  case list.first(result) {
+    Ok(1) -> Ok(True)
+    Ok(0) -> Ok(False)
+    _ -> Error(ConnectorError("Failed to check if feature_flag exists."))
+  }
+}
+
+pub fn set(
+  conn: sqlight.Connection,
+  namespace: String,
+  name: String,
+  value: Bool,
+) -> Result(Nil, ServiceError) {
+  use exists <- result.try(flag_is_created(conn, namespace, name))
+  use <- bool.guard(
+    exists,
+    Error(ResourceDoesNotExist("Feature Flag " <> name <> " does not exist.")),
+  )
+
+  let query =
+    sqlight.query(
+      set_flag,
+      on: conn,
+      with: [
+        sqlight.text(bool.to_string(value)),
+        sqlight.text(name),
+        sqlight.text(namespace),
+      ],
+      expecting: dynamic.element(0, dynamic.int),
+    )
+
+  case query {
+    Ok(_) -> Ok(Nil)
+    Error(_) -> Error(ConnectorError("Failed to set feature flag."))
+  }
+}
+
+pub fn get(
+  conn: sqlight.Connection,
+  namespace: String,
+  name: String,
+) -> Result(Bool, ServiceError) {
+  use exists <- result.try(flag_is_created(conn, namespace, name))
+  use <- bool.guard(
+    exists,
+    Error(ResourceDoesNotExist("Feature Flag " <> name <> " does not exist.")),
+  )
+
+  let query =
+    sqlight.query(
+      get_flag,
+      on: conn,
+      with: [sqlight.text(name), sqlight.text(namespace)],
+      expecting: dynamic.element(0, dynamic.string),
+    )
+
+  use result <- result.try(result.replace_error(
+    query,
+    ConnectorError("Failed to get feature flag."),
+  ))
+
+  case list.first(result) {
+    Ok("True") -> Ok(True)
+    Ok(_) -> Ok(False)
+    _ -> Error(ConnectorError("Failed to get feature flag."))
+  }
+}
+
+pub fn delete(
+  conn: sqlight.Connection,
+  namespace: String,
+  name: String,
+) -> Result(Nil, ServiceError) {
+  use exists <- result.try(flag_is_created(conn, namespace, name))
+  use <- bool.guard(
+    exists,
+    Error(ResourceDoesNotExist("Feature Flag " <> name <> " does not exist.")),
+  )
+
+  let query =
+    sqlight.query(
+      delete_flag,
+      on: conn,
+      with: [sqlight.text(name), sqlight.text(namespace)],
+      expecting: dynamic.element(0, dynamic.int),
+    )
+
+  case query {
+    Ok(_) -> Ok(Nil)
+    Error(_) -> Error(ConnectorError("Failed to delete feature flag."))
+  }
+}

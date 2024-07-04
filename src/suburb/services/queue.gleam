@@ -1,31 +1,25 @@
 import gleam/bool
 import gleam/dynamic
-import gleam/erlang/process
-import gleam/io
 import gleam/list
-import gleam/list as glist
 import gleam/result
 import sqlight
-import suburb/common.{
-  type ServiceError, ConnectorError, ResourceDoesNotExist, get_key,
-  get_service_key, parse_radish_error,
-}
+import suburb/common.{type ServiceError, ConnectorError, ResourceDoesNotExist}
 
-const list_query = "SELECT queue_name FROM queues WHERE namespace = ?"
+const list_query = "SELECT queue FROM queues WHERE namespace = ?"
 
-const is_created_query = "SELECT EXISTS(SELECT 1 FROM queues WHERE queue_name = ? AND namespace = ?)"
+const is_created_query = "SELECT EXISTS(SELECT 1 FROM queues WHERE queue = ? AND namespace = ?)"
 
 const length_query = "
     SELECT COUNT(*)
     FROM queued_values qv
     JOIN queues q ON qv.queue_id = q.id
-    WHERE q.queue_name = ?
+    WHERE q.queue = ?
       AND q.namespace = ?
       AND qv.consumed_at IS NULL
   "
 
 const create_query = "
-    INSERT INTO queues (queue_name, namespace)
+    INSERT INTO queues (queue, namespace)
     VALUES (?, ?)
   "
 
@@ -33,7 +27,7 @@ const push_query = "
     INSERT INTO queued_values (queue_id, content)
     SELECT q.id, ?
     FROM queues q
-    WHERE q.queue_name = ?
+    WHERE q.queue = ?
       AND q.namespace = ?
   "
 
@@ -41,7 +35,7 @@ const pop_get_query = "
     SELECT qv.id, qv.content
     FROM queued_values qv
     JOIN queues q ON qv.queue_id = q.id
-    WHERE q.queue_name = ?
+    WHERE q.queue = ?
       AND q.namespace = ?
       AND qv.consumed_at IS NULL
     ORDER BY qv.id ASC
@@ -58,11 +52,17 @@ const peek_query = "
     SELECT qv.content
     FROM queued_values qv
     JOIN queues q ON qv.queue_id = q.id
-    WHERE q.queue_name = ?
+    WHERE q.queue = ?
       AND q.namespace = ?
       AND qv.consumed_at IS NULL
     ORDER BY qv.id ASC
     LIMIT 1
+  "
+
+const delete_query = "
+    DELETE FROM queues
+    WHERE queue = ?
+      AND namespace = ?
   "
 
 pub fn list(
@@ -101,10 +101,7 @@ fn queue_is_created(
   case list.first(result) {
     Ok(1) -> Ok(True)
     Ok(0) -> Ok(False)
-    x -> {
-      io.debug(x)
-      Error(ConnectorError("Failed to check if queue exists."))
-    }
+    _ -> Error(ConnectorError("Failed to check if queue exists."))
   }
 }
 
@@ -254,4 +251,29 @@ pub fn peek(
   ))
 
   Ok(result.unwrap(list.first(result), ""))
+}
+
+pub fn delete(
+  conn: sqlight.Connection,
+  namespace: String,
+  name: String,
+) -> Result(Nil, ServiceError) {
+  use exists <- result.try(queue_is_created(conn, namespace, name))
+  use <- bool.guard(
+    !exists,
+    Error(ResourceDoesNotExist("Queue " <> name <> " does not exist.")),
+  )
+
+  let query =
+    sqlight.query(
+      delete_query,
+      on: conn,
+      with: [sqlight.text(name), sqlight.text(namespace)],
+      expecting: dynamic.element(0, dynamic.int),
+    )
+
+  case query {
+    Ok(_) -> Ok(Nil)
+    Error(_) -> Error(ConnectorError("Failed to delete queue."))
+  }
 }

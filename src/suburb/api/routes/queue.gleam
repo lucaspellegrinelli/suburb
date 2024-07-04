@@ -10,10 +10,10 @@ pub fn length_route(
   req: Request,
   ctx: Context,
   namespace: String,
-  queue_name: String,
+  queue: String,
 ) -> Response {
   use <- wisp.require_method(req, http.Get)
-  case queue.length(ctx.conn, namespace, queue_name) {
+  case queue.length(ctx.conn, namespace, queue) {
     Ok(length) -> length |> json.int |> construct_response("success", 200)
     Error(e) -> e |> extract_error |> construct_response("error", 404)
   }
@@ -23,7 +23,7 @@ pub fn push_route(
   req: Request,
   ctx: Context,
   namespace: String,
-  queue_name: String,
+  queue: String,
 ) -> Response {
   use <- wisp.require_method(req, http.Post)
   use json <- wisp.require_json(req)
@@ -31,7 +31,7 @@ pub fn push_route(
 
   case value {
     Ok(value) -> {
-      case queue.push(ctx.conn, namespace, queue_name, value) {
+      case queue.push(ctx.conn, namespace, queue, value) {
         Ok(_) -> "pushed" |> json.string |> construct_response("success", 200)
         Error(e) -> e |> extract_error |> construct_response("error", 404)
       }
@@ -45,10 +45,10 @@ pub fn pop_route(
   req: Request,
   ctx: Context,
   namespace: String,
-  queue_name: String,
+  queue: String,
 ) -> Response {
   use <- wisp.require_method(req, http.Delete)
-  case queue.pop(ctx.conn, namespace, queue_name) {
+  case queue.pop(ctx.conn, namespace, queue) {
     Ok(value) -> value |> json.string |> construct_response("success", 200)
     Error(e) -> e |> extract_error |> construct_response("error", 404)
   }
@@ -86,11 +86,24 @@ pub fn peek_route(
   req: Request,
   ctx: Context,
   namespace: String,
-  queue_name: String,
+  queue: String,
 ) -> Response {
   use <- wisp.require_method(req, http.Get)
-  case queue.peek(ctx.conn, namespace, queue_name) {
+  case queue.peek(ctx.conn, namespace, queue) {
     Ok(value) -> value |> json.string |> construct_response("success", 200)
+    Error(e) -> e |> extract_error |> construct_response("error", 404)
+  }
+}
+
+pub fn delete_route(
+  req: Request,
+  ctx: Context,
+  namespace: String,
+  queue: String,
+) -> Response {
+  use <- wisp.require_method(req, http.Delete)
+  case queue.delete(ctx.conn, namespace, queue) {
+    Ok(_) -> "deleted" |> json.string |> construct_response("success", 200)
     Error(e) -> e |> extract_error |> construct_response("error", 404)
   }
 }
