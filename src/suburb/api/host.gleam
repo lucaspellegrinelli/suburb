@@ -35,10 +35,17 @@ pub fn serve() {
       "secret"
     }
   }
+  let database_path = case envoy.get("DATABASE_PATH") {
+    Ok(path) -> path
+    Error(_) -> {
+      io.println("DATABASE_PATH not set, defaulting to \"suburb.db\"")
+      "suburb.db"
+    }
+  }
 
   wisp.configure_logger()
 
-  use db_conn <- db_connection()
+  use db_conn <- db_connection(database_path)
 
   let context = Context(conn: db_conn, api_secret: api_secret)
   let handler = router.handle_request(_, context)

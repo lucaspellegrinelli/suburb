@@ -1,4 +1,8 @@
+# Use the official Gleam image
 FROM ghcr.io/gleam-lang/gleam:v1.2.1-erlang-alpine
+
+# Install build dependencies
+RUN apk add --no-cache gcc g++ make
 
 # Add project code
 COPY . /build/
@@ -12,4 +16,4 @@ RUN cd /build \
 # Run the server
 WORKDIR /app
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["run"]
+CMD ["run", "host"]

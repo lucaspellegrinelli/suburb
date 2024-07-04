@@ -1,8 +1,6 @@
 import gleam/string
 import sqlight
 
-const database_path = "suburb.db"
-
 const create_queue_sql = "
 CREATE TABLE IF NOT EXISTS queues (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,7 +35,7 @@ CREATE TABLE IF NOT EXISTS feature_flags (
 CREATE INDEX IF NOT EXISTS idx_feature_flags_flag_namespace ON feature_flags (flag, namespace);
 "
 
-pub fn db_connection(f: fn(sqlight.Connection) -> a) {
+pub fn db_connection(database_path: String, f: fn(sqlight.Connection) -> a) {
   use conn <- sqlight.with_connection(database_path)
   let sql = string.concat([create_queue_sql, create_feature_flag_sql])
   let assert Ok(Nil) = sqlight.exec(sql, conn)
