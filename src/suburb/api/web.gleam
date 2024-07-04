@@ -2,11 +2,11 @@ import gleam/bool
 import gleam/dict
 import gleam/erlang/process
 import gleam/json
-import radish
+import sqlight
 import wisp
 
 pub type Context {
-  Context(client: process.Subject(radish.Message), api_secret: String)
+  Context(conn: sqlight.Connection, api_secret: String)
 }
 
 fn unauthorized() {

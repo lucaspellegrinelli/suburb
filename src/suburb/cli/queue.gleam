@@ -209,3 +209,71 @@ pub fn queue_pop() -> glint.Command(Nil) {
     Ok(response) -> io.println("Response: " <> response)
   }
 }
+
+pub fn queue_create() -> glint.Command(Nil) {
+  use <- glint.command_help("Create a queue")
+  use namespace <- glint.named_arg("namespace")
+  use name <- glint.named_arg("name")
+  use named, _, _ <- glint.command()
+
+  let result = case connect.remote_connection() {
+    Ok(#(host, key)) -> {
+      use resp <- result.try(make_request(
+        host,
+        "/queue/" <> namespace(named) <> "/create",
+        key,
+        http.Post,
+        Some(name(named)),
+      ))
+
+      let decoded =
+        resp
+        |> json.decode(dynamic.field("response", of: dynamic.string))
+
+      case decoded {
+        Ok(response) -> Ok(response)
+        Error(_) -> Error("Failed to decode response")
+      }
+    }
+    _ -> Error("No connection to a Suburb server")
+  }
+
+  case result {
+    Error(e) -> io.println(e)
+    Ok(response) -> io.println("Response: " <> response)
+  }
+}
+
+pub fn queue_peek() -> glint.Command(Nil) {
+  use <- glint.command_help("Peek at the next message in a queue")
+  use namespace <- glint.named_arg("namespace")
+  use name <- glint.named_arg("name")
+  use named, _, _ <- glint.command()
+
+  let result = case connect.remote_connection() {
+    Ok(#(host, key)) -> {
+      use resp <- result.try(make_request(
+        host,
+        "/queue/" <> namespace(named) <> "/" <> name(named),
+        key,
+        http.Get,
+        None,
+      ))
+
+      let decoded =
+        resp
+        |> json.decode(dynamic.field("response", of: dynamic.string))
+
+      case decoded {
+        Ok(response) -> Ok(response)
+        Error(_) -> Error("Failed to decode response")
+      }
+    }
+    _ -> Error("No connection to a Suburb server")
+  }
+
+  case result {
+    Error(e) -> io.println(e)
+    Ok(response) -> io.println("Response: " <> response)
+  }
+}

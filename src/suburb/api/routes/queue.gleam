@@ -13,7 +13,7 @@ pub fn length_route(
   queue_name: String,
 ) -> Response {
   use <- wisp.require_method(req, http.Get)
-  case queue.length(ctx.client, namespace, queue_name) {
+  case queue.length(ctx.conn, namespace, queue_name) {
     Ok(length) -> length |> json.int |> construct_response("success", 200)
     Error(e) -> e |> extract_error |> construct_response("error", 404)
   }
@@ -31,7 +31,7 @@ pub fn push_route(
 
   case value {
     Ok(value) -> {
-      case queue.push(ctx.client, namespace, queue_name, value) {
+      case queue.push(ctx.conn, namespace, queue_name, value) {
         Ok(_) -> "pushed" |> json.string |> construct_response("success", 200)
         Error(e) -> e |> extract_error |> construct_response("error", 404)
       }
@@ -48,7 +48,7 @@ pub fn pop_route(
   queue_name: String,
 ) -> Response {
   use <- wisp.require_method(req, http.Delete)
-  case queue.pop(ctx.client, namespace, queue_name) {
+  case queue.pop(ctx.conn, namespace, queue_name) {
     Ok(value) -> value |> json.string |> construct_response("success", 200)
     Error(e) -> e |> extract_error |> construct_response("error", 404)
   }
@@ -56,7 +56,7 @@ pub fn pop_route(
 
 pub fn list_route(req: Request, ctx: Context, namespace: String) -> Response {
   use <- wisp.require_method(req, http.Get)
-  case queue.list(ctx.client, namespace) {
+  case queue.list(ctx.conn, namespace) {
     Ok(values) ->
       values
       |> json.array(of: json.string)
@@ -72,12 +72,25 @@ pub fn create_route(req: Request, ctx: Context, namespace: String) -> Response {
 
   case value {
     Ok(value) -> {
-      case queue.create(ctx.client, namespace, value) {
+      case queue.create(ctx.conn, namespace, value) {
         Ok(_) -> "created" |> json.string |> construct_response("success", 200)
         Error(e) -> e |> extract_error |> construct_response("error", 404)
       }
     }
     Error(_) ->
       json.string("Couldn't parse value") |> construct_response("error", 400)
+  }
+}
+
+pub fn peek_route(
+  req: Request,
+  ctx: Context,
+  namespace: String,
+  queue_name: String,
+) -> Response {
+  use <- wisp.require_method(req, http.Get)
+  case queue.peek(ctx.conn, namespace, queue_name) {
+    Ok(value) -> value |> json.string |> construct_response("success", 200)
+    Error(e) -> e |> extract_error |> construct_response("error", 404)
   }
 }

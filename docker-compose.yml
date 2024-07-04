@@ -1,10 +1,11 @@
 version: '3.8'
 
 services:
-  valkey:
-    image: valkey/valkey:latest
-    ports:
-      - "6379:6379"
+  sqlite:
+    build: ./docker/sqlite
+    volumes:
+      - ./docker/sqlite/data:/data
+    command: ["sqlite3", "/data/suburb.db"]
 
   # suburb:
   #   image: suburb

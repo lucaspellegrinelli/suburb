@@ -3,9 +3,9 @@ import gleam/erlang/process
 import gleam/int
 import gleam/io
 import mist
-import radish
 import suburb/api/router
 import suburb/api/web.{Context}
+import suburb/db.{db_connection}
 import wisp
 
 fn get_env_int(name: String, default: Int) -> Int {
@@ -28,14 +28,6 @@ fn get_env_int(name: String, default: Int) -> Int {
 
 pub fn serve() {
   let port = get_env_int("PORT", 7777)
-  let valkey_port = get_env_int("VALKEY_PORT", 6379)
-  let valkey_host = case envoy.get("VALKEY_HOST") {
-    Ok(host) -> host
-    Error(_) -> {
-      io.println("VALKEY_HOST not set, defaulting to localhost")
-      "localhost"
-    }
-  }
   let api_secret = case envoy.get("API_SECRET") {
     Ok(secret) -> secret
     Error(_) -> {
@@ -46,13 +38,9 @@ pub fn serve() {
 
   wisp.configure_logger()
 
-  let assert Ok(valkey_client) =
-    radish.start(valkey_host, valkey_port, [
-      radish.Timeout(128),
-      radish.Auth(""),
-    ])
+  use db_conn <- db_connection()
 
-  let context = Context(client: valkey_client, api_secret: api_secret)
+  let context = Context(conn: db_conn, api_secret: api_secret)
   let handler = router.handle_request(_, context)
 
   let secret_key_base = wisp.random_string(64)

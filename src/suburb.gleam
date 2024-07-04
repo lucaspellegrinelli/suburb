@@ -11,9 +11,11 @@ pub fn main() {
   |> glint.add(at: ["host"], do: host.host())
   |> glint.add(at: ["remote", "set"], do: remote.remote_set())
   |> glint.add(at: ["remote", "get"], do: remote.remote_get())
+  |> glint.add(at: ["queue", "create"], do: queue.queue_create())
   |> glint.add(at: ["queue", "list"], do: queue.queue_list())
   |> glint.add(at: ["queue", "length"], do: queue.queue_length())
   |> glint.add(at: ["queue", "push"], do: queue.queue_push())
   |> glint.add(at: ["queue", "pop"], do: queue.queue_pop())
+  |> glint.add(at: ["queue", "peek"], do: queue.queue_peek())
   |> glint.run(argv.load().arguments)
 }

@@ -1,119 +1,257 @@
 import gleam/bool
+import gleam/dynamic
 import gleam/erlang/process
+import gleam/io
+import gleam/list
 import gleam/list as glist
 import gleam/result
-import radish
-import radish/list
-import radish/set
+import sqlight
 import suburb/common.{
-  type ServiceError, ResourceDoesNotExist, get_key, get_service_key,
-  parse_radish_error,
+  type ServiceError, ConnectorError, ResourceDoesNotExist, get_key,
+  get_service_key, parse_radish_error,
 }
 
-const service = "queue"
+const list_query = "SELECT queue_name FROM queues WHERE namespace = ?"
+
+const is_created_query = "SELECT EXISTS(SELECT 1 FROM queues WHERE queue_name = ? AND namespace = ?)"
+
+const length_query = "
+    SELECT COUNT(*)
+    FROM queued_values qv
+    JOIN queues q ON qv.queue_id = q.id
+    WHERE q.queue_name = ?
+      AND q.namespace = ?
+      AND qv.consumed = 0
+  "
+
+const create_query = "
+    INSERT INTO queues (queue_name, namespace)
+    VALUES (?, ?)
+  "
+
+const push_query = "
+    INSERT INTO queued_values (queue_id, content)
+    SELECT q.id, ?
+    FROM queues q
+    WHERE q.queue_name = ?
+      AND q.namespace = ?
+  "
+
+const pop_get_query = "
+    SELECT qv.id, qv.content
+    FROM queued_values qv
+    JOIN queues q ON qv.queue_id = q.id
+    WHERE q.queue_name = ?
+      AND q.namespace = ?
+      AND qv.consumed = 0
+    ORDER BY qv.id ASC
+    LIMIT 1
+  "
+
+const pop_update_query = "
+    UPDATE queued_values
+    SET consumed = 1
+    WHERE id = ?
+  "
+
+const peek_query = "
+    SELECT qv.content
+    FROM queued_values qv
+    JOIN queues q ON qv.queue_id = q.id
+    WHERE q.queue_name = ?
+      AND q.namespace = ?
+      AND qv.consumed = 0
+    ORDER BY qv.id ASC
+    LIMIT 1
+  "
 
 pub fn list(
-  client: process.Subject(radish.Message),
+  conn: sqlight.Connection,
   namespace: String,
 ) -> Result(List(String), ServiceError) {
-  let pattern = service <> ":" <> namespace <> ":*"
-  use scan_result <- result.try(
-    set.scan_pattern(client, service, 0, pattern, 16, 128)
-    |> result.map_error(parse_radish_error),
-  )
+  let query =
+    sqlight.query(
+      list_query,
+      on: conn,
+      with: [sqlight.text(namespace)],
+      expecting: dynamic.element(0, dynamic.string),
+    )
 
-  Ok(scan_result.0)
+  result.replace_error(query, ConnectorError("Failed to list queues."))
 }
 
 fn queue_is_created(
-  client: process.Subject(radish.Message),
+  conn: sqlight.Connection,
   namespace: String,
   name: String,
 ) -> Result(Bool, ServiceError) {
-  use key <- result.try(get_key(service, namespace, name))
-  use queue_list <- result.try(list(client, namespace))
-  Ok(queue_list |> glist.contains(key))
+  let query =
+    sqlight.query(
+      is_created_query,
+      on: conn,
+      with: [sqlight.text(name), sqlight.text(namespace)],
+      expecting: dynamic.element(0, dynamic.int),
+    )
+
+  use result <- result.try(result.replace_error(
+    query,
+    ConnectorError("Failed to check if queue exists."),
+  ))
+
+  case list.first(result) {
+    Ok(1) -> Ok(True)
+    Ok(0) -> Ok(False)
+    x -> {
+      io.debug(x)
+      Error(ConnectorError("Failed to check if queue exists."))
+    }
+  }
 }
 
 pub fn length(
-  client: process.Subject(radish.Message),
+  conn: sqlight.Connection,
   namespace: String,
   name: String,
 ) -> Result(Int, ServiceError) {
-  use exists <- result.try(queue_is_created(client, namespace, name))
+  use exists <- result.try(queue_is_created(conn, namespace, name))
   use <- bool.guard(
     !exists,
     Error(ResourceDoesNotExist("Queue " <> name <> " does not exist.")),
   )
 
-  use key <- result.try(get_key(service, namespace, name))
+  let query =
+    sqlight.query(
+      length_query,
+      on: conn,
+      with: [sqlight.text(name), sqlight.text(namespace)],
+      expecting: dynamic.element(0, dynamic.int),
+    )
 
-  list.len(client, key, 128)
-  |> result.map_error(parse_radish_error)
+  use result <- result.try(result.replace_error(
+    query,
+    ConnectorError("Failed to get queue length."),
+  ))
+
+  Ok(result.unwrap(list.first(result), 0))
 }
 
 pub fn push(
-  client: process.Subject(radish.Message),
+  conn: sqlight.Connection,
   namespace: String,
   name: String,
   value: String,
 ) -> Result(Nil, ServiceError) {
-  use exists <- result.try(queue_is_created(client, namespace, name))
+  use exists <- result.try(queue_is_created(conn, namespace, name))
   use <- bool.guard(
     !exists,
     Error(ResourceDoesNotExist("Queue " <> name <> " does not exist.")),
   )
 
-  use key <- result.try(get_key(service, namespace, name))
+  let query =
+    sqlight.query(
+      push_query,
+      on: conn,
+      with: [sqlight.text(value), sqlight.text(name), sqlight.text(namespace)],
+      expecting: dynamic.element(0, dynamic.int),
+    )
 
-  use push_out <- result.try(
-    list.rpush(client, key, [value], 128)
-    |> result.map_error(parse_radish_error),
-  )
-
-  case push_out {
-    1 -> Ok(Nil)
-    _ -> Error(ResourceDoesNotExist("Queue " <> name <> " does not exist."))
+  case query {
+    Ok(_) -> Ok(Nil)
+    Error(_) -> Error(ConnectorError("Failed to push value to queue."))
   }
 }
 
 pub fn pop(
-  client: process.Subject(radish.Message),
+  conn: sqlight.Connection,
   namespace: String,
   name: String,
 ) -> Result(String, ServiceError) {
-  use exists <- result.try(queue_is_created(client, namespace, name))
+  use exists <- result.try(queue_is_created(conn, namespace, name))
   use <- bool.guard(
     !exists,
     Error(ResourceDoesNotExist("Queue " <> name <> " does not exist.")),
   )
 
-  use key <- result.try(get_key(service, namespace, name))
+  let get_query =
+    sqlight.query(
+      pop_get_query,
+      on: conn,
+      with: [sqlight.text(name), sqlight.text(namespace)],
+      expecting: dynamic.tuple2(dynamic.int, dynamic.string),
+    )
 
-  list.lpop(client, key, 128)
-  |> result.map_error(parse_radish_error)
+  use result <- result.try(result.replace_error(
+    get_query,
+    ConnectorError("Failed to pop value from queue."),
+  ))
+
+  use #(id, content) <- result.try(result.replace_error(
+    list.first(result),
+    ConnectorError("Failed to pop value from queue."),
+  ))
+
+  let update_query =
+    sqlight.query(
+      pop_update_query,
+      on: conn,
+      with: [sqlight.int(id)],
+      expecting: dynamic.element(0, dynamic.int),
+    )
+
+  case update_query {
+    Ok(_) -> Ok(content)
+    Error(_) -> Error(ConnectorError("Failed to pop value from queue."))
+  }
 }
 
 pub fn create(
-  client: process.Subject(radish.Message),
+  conn: sqlight.Connection,
   namespace: String,
   name: String,
 ) -> Result(Nil, ServiceError) {
-  use exists <- result.try(queue_is_created(client, namespace, name))
+  use exists <- result.try(queue_is_created(conn, namespace, name))
   use <- bool.guard(
     exists,
     Error(ResourceDoesNotExist("Queue " <> name <> " already exists.")),
   )
 
-  use service_key <- result.try(get_service_key(service, namespace))
-  let queue_name = service_key <> ":" <> name
-  use add_out <- result.try(
-    set.add(client, service, [queue_name], 128)
-    |> result.map_error(parse_radish_error),
+  let query =
+    sqlight.query(
+      create_query,
+      on: conn,
+      with: [sqlight.text(name), sqlight.text(namespace)],
+      expecting: dynamic.element(0, dynamic.int),
+    )
+
+  case query {
+    Ok(_) -> Ok(Nil)
+    Error(_) -> Error(ConnectorError("Failed to create queue."))
+  }
+}
+
+pub fn peek(
+  conn: sqlight.Connection,
+  namespace: String,
+  name: String,
+) -> Result(String, ServiceError) {
+  use exists <- result.try(queue_is_created(conn, namespace, name))
+  use <- bool.guard(
+    !exists,
+    Error(ResourceDoesNotExist("Queue " <> name <> " does not exist.")),
   )
 
-  case add_out {
-    1 -> Ok(Nil)
-    _ -> Error(ResourceDoesNotExist("Queue " <> name <> " already exists."))
-  }
+  let query =
+    sqlight.query(
+      peek_query,
+      on: conn,
+      with: [sqlight.text(name), sqlight.text(namespace)],
+      expecting: dynamic.element(0, dynamic.string),
+    )
+
+  use result <- result.try(result.replace_error(
+    query,
+    ConnectorError("Failed to peek value from queue."),
+  ))
+
+  Ok(result.unwrap(list.first(result), ""))
 }
