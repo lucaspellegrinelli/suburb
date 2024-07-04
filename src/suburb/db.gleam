@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS queues (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     queue_name TEXT,
     namespace TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(queue_name, namespace)
 );
 
@@ -15,6 +16,7 @@ CREATE TABLE IF NOT EXISTS queued_values (
     queue_id INTEGER,
     content TEXT,
     consumed BOOLEAN DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(queue_id) REFERENCES queues(id)
 );
 
