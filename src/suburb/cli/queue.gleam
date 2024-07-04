@@ -42,11 +42,7 @@ pub fn list() -> glint.Command(Nil) {
 
   case result {
     Error(e) -> io.println(e)
-    Ok(queues) -> {
-      io.println("Queues:")
-      queues
-      |> list.each(fn(q) { io.println(" - " <> q) })
-    }
+    Ok(queues) -> ["NAMES", ..queues] |> list.each(io.println)
   }
 }
 
@@ -80,7 +76,7 @@ pub fn length() -> glint.Command(Nil) {
 
   case result {
     Error(e) -> io.println(e)
-    Ok(length) -> io.println("Length: " <> int.to_string(length))
+    Ok(length) -> io.println(int.to_string(length))
   }
 }
 
@@ -115,7 +111,7 @@ pub fn push() -> glint.Command(Nil) {
 
   case result {
     Error(e) -> io.println(e)
-    Ok(response) -> io.println("Response: " <> response)
+    Ok(response) -> io.println(response)
   }
 }
 
@@ -149,7 +145,7 @@ pub fn pop() -> glint.Command(Nil) {
 
   case result {
     Error(e) -> io.println(e)
-    Ok(response) -> io.println("Response: " <> response)
+    Ok(response) -> io.println(response)
   }
 }
 
@@ -183,7 +179,7 @@ pub fn create() -> glint.Command(Nil) {
 
   case result {
     Error(e) -> io.println(e)
-    Ok(response) -> io.println("Response: " <> response)
+    Ok(response) -> io.println(response)
   }
 }
 
@@ -217,6 +213,6 @@ pub fn peek() -> glint.Command(Nil) {
 
   case result {
     Error(e) -> io.println(e)
-    Ok(response) -> io.println("Response: " <> response)
+    Ok(response) -> io.println(response)
   }
 }

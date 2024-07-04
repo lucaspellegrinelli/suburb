@@ -41,11 +41,7 @@ pub fn list() -> glint.Command(Nil) {
 
   case result {
     Error(e) -> io.println(e)
-    Ok(flags) -> {
-      io.println("Feature Flags:")
-      flags
-      |> list.each(fn(q) { io.println(" - " <> q) })
-    }
+    Ok(flags) -> ["NAMES", ..flags] |> list.each(io.println)
   }
 }
 
@@ -80,7 +76,7 @@ pub fn set() -> glint.Command(Nil) {
 
   case result {
     Error(e) -> io.println(e)
-    Ok(response) -> io.println("Response: " <> response)
+    Ok(response) -> io.println(response)
   }
 }
 
@@ -114,7 +110,7 @@ pub fn get() -> glint.Command(Nil) {
 
   case result {
     Error(e) -> io.println(e)
-    Ok(response) -> io.println("Response: " <> response)
+    Ok(response) -> io.println(response)
   }
 }
 
@@ -148,6 +144,6 @@ pub fn delete() -> glint.Command(Nil) {
 
   case result {
     Error(e) -> io.println(e)
-    Ok(response) -> io.println("Response: " <> response)
+    Ok(response) -> io.println(response)
   }
 }
