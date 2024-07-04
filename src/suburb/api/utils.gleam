@@ -4,7 +4,9 @@ import wisp
 
 pub fn extract_error(e: common.ServiceError) {
   case e {
-    common.InvalidKey(e) | common.ConnectorError(e) -> json.string(e)
+    common.InvalidKey(e)
+    | common.ConnectorError(e)
+    | common.ResourceDoesNotExist(e) -> json.string(e)
   }
 }
 

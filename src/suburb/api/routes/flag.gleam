@@ -1,8 +1,8 @@
 import gleam/dynamic
 import gleam/http
 import gleam/json
-import suburb/interface/utils.{construct_response, extract_error}
-import suburb/interface/web.{type Context}
+import suburb/api/utils.{construct_response, extract_error}
+import suburb/api/web.{type Context}
 import suburb/services/featureflag
 import wisp.{type Request, type Response}
 

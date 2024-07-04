@@ -1,16 +1,17 @@
 import gleam/bool
+import gleam/result
 import gleam/string
 import radish/error
 
 pub type ServiceError {
   InvalidKey(String)
+  ResourceDoesNotExist(String)
   ConnectorError(String)
 }
 
-pub fn get_key(
+pub fn get_service_key(
   service: String,
   namespace: String,
-  name: String,
 ) -> Result(String, ServiceError) {
   use <- bool.guard(
     string.is_empty(service),
@@ -23,11 +24,6 @@ pub fn get_key(
   )
 
   use <- bool.guard(
-    string.is_empty(name),
-    Error(InvalidKey("Name cannot be empty")),
-  )
-
-  use <- bool.guard(
     string.contains(service, ":"),
     Error(InvalidKey("Service name cannot contain ':'")),
   )
@@ -37,12 +33,27 @@ pub fn get_key(
     Error(InvalidKey("Namespace name cannot contain ':'")),
   )
 
+  Ok(string.concat([service, ":", namespace]))
+}
+
+pub fn get_key(
+  service: String,
+  namespace: String,
+  name: String,
+) -> Result(String, ServiceError) {
+  use service_key <- result.try(get_service_key(service, namespace))
+
+  use <- bool.guard(
+    string.is_empty(name),
+    Error(InvalidKey("Name cannot be empty")),
+  )
+
   use <- bool.guard(
     string.contains(name, ":"),
     Error(InvalidKey("Name cannot contain ':'")),
   )
 
-  Ok(string.concat([service, ":", namespace, ":", name]))
+  Ok(string.concat([service_key, ":", name]))
 }
 
 pub fn parse_radish_error(e: error.Error) -> ServiceError {
