@@ -5,7 +5,11 @@ import gleam/result
 import sqlight
 import suburb/common.{type ServiceError, ConnectorError, ResourceDoesNotExist}
 
-const list_query = "SELECT queue FROM queues WHERE namespace = ?"
+pub type Queue {
+  Queue(namespace: String, queue: String)
+}
+
+const list_query = "SELECT namespace, queue FROM queues WHERE namespace = ?"
 
 const is_created_query = "SELECT EXISTS(SELECT 1 FROM queues WHERE queue = ? AND namespace = ?)"
 
@@ -68,16 +72,21 @@ const delete_query = "
 pub fn list(
   conn: sqlight.Connection,
   namespace: String,
-) -> Result(List(String), ServiceError) {
+) -> Result(List(Queue), ServiceError) {
   let query =
     sqlight.query(
       list_query,
       on: conn,
       with: [sqlight.text(namespace)],
-      expecting: dynamic.element(0, dynamic.string),
+      expecting: dynamic.tuple2(dynamic.string, dynamic.string),
     )
 
-  result.replace_error(query, ConnectorError("Failed to list queues."))
+  use result <- result.try(result.replace_error(
+    query,
+    ConnectorError("Failed to list queues."),
+  ))
+
+  Ok(list.map(result, fn(row) { Queue(namespace: row.0, queue: row.1) }))
 }
 
 fn queue_is_created(

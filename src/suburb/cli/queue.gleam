@@ -8,6 +8,7 @@ import gleam/option.{None, Some}
 import gleam/result
 import glint
 import suburb/cli/utils/req.{make_request}
+import suburb/cli/utils/display.{print_table}
 import suburb/connect
 
 pub fn list() -> glint.Command(Nil) {
@@ -29,7 +30,14 @@ pub fn list() -> glint.Command(Nil) {
         resp
         |> json.decode(dynamic.field(
           "response",
-          of: dynamic.list(of: dynamic.string),
+          of: dynamic.list(of: fn(item) {
+            let assert Ok(ns) =
+              item |> dynamic.field(named: "namespace", of: dynamic.string)
+            let assert Ok(queue) =
+              item |> dynamic.field(named: "queue", of: dynamic.string)
+
+            Ok(#(ns, queue))
+          }),
         ))
 
       case decoded {
@@ -42,7 +50,12 @@ pub fn list() -> glint.Command(Nil) {
 
   case result {
     Error(e) -> io.println(e)
-    Ok(queues) -> ["NAMES", ..queues] |> list.each(io.println)
+    Ok(queues) -> {
+      let values = list.map(queues, fn(l) { [l.0, l.1] })
+      let headers = ["NAMESPACE", "QUEUE"]
+      let col_sizes = [16, 999_999]
+      print_table(headers, values, col_sizes)
+    }
   }
 }
 

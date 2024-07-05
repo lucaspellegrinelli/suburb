@@ -45,7 +45,7 @@ pub fn list() -> glint.Command(Nil) {
         ))
 
       case decoded {
-        Ok(flags) -> Ok(flags)
+        Ok(logs) -> Ok(logs)
         Error(_) -> Error("Failed to decode response")
       }
     }
