@@ -10,20 +10,27 @@ import suburb/cli/utils/display.{print_table}
 import suburb/cli/utils/req.{make_request}
 import suburb/connect
 
+pub fn namespace_flag() -> glint.Flag(String) {
+  glint.string_flag("namespace")
+  |> glint.flag_help("The namespace to list logs for")
+}
+
 pub fn list() -> glint.Command(Nil) {
   use <- glint.command_help("List the logs for a namespace")
-  use namespace <- glint.named_arg("namespace")
-  use named, _, _ <- glint.command()
+  use namespace <- glint.flag(namespace_flag())
+  use _, _, flags <- glint.command()
+
+  let namespace_param = case namespace(flags) {
+    Ok(ns) -> "namespace=" <> ns
+    Error(_) -> ""
+  }
+
+  let query_params = "?" <> namespace_param
+  let url = "/log" <> query_params
 
   let result = case connect.remote_connection() {
     Ok(#(host, key)) -> {
-      use resp <- result.try(make_request(
-        host,
-        "/log/" <> namespace(named),
-        key,
-        http.Get,
-        None,
-      ))
+      use resp <- result.try(make_request(host, url, key, http.Get, None))
 
       let decoded =
         resp

@@ -23,7 +23,7 @@ pub fn handle_request(req: Request, ctx: Context) -> Response {
     ["flag", ns, name], Post -> flag.set_route(req, ctx, ns, name)
     ["flag", ns, name], Delete -> flag.delete_route(req, ctx, ns, name)
 
-    ["log", ns], Get -> log.list_route(req, ctx, ns)
+    ["log"], Get -> log.list_route(req, ctx)
     ["log", ns], Post -> log.add_route(req, ctx, ns)
     _, _ -> wisp.not_found()
   }

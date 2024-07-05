@@ -6,6 +6,7 @@ import sqlight
 import suburb/types.{type Log, type ServiceError, ConnectorError, Log}
 
 pub type LogFilters {
+  Namespace(String)
   Source(String)
   Level(String)
   FromTime(String)
@@ -19,13 +20,13 @@ const add_log = "
 
 pub fn list(
   conn: sqlight.Connection,
-  namespace: String,
   filters: List(LogFilters),
   limit: Int,
 ) -> Result(List(Log), ServiceError) {
   let where_items =
     list.map(filters, fn(filter) {
       case filter {
+        Namespace(_) -> "namespace = ?"
         Source(_) -> "source = ?"
         Level(_) -> "level = ?"
         FromTime(_) -> "created_at >= ?"
@@ -36,6 +37,7 @@ pub fn list(
   let where_values =
     list.map(filters, fn(filter) {
       case filter {
+        Namespace(value) -> sqlight.text(value)
         Source(value) -> sqlight.text(value)
         Level(value) -> sqlight.text(value)
         FromTime(value) -> sqlight.text(value)
@@ -43,17 +45,17 @@ pub fn list(
       }
     })
 
-  let where_items = list.append(where_items, ["namespace = ?"])
-  let where_clause = string.join(where_items, " AND ")
+  let where_clause = case list.length(where_items) {
+    0 -> ""
+    _ -> "WHERE " <> string.join(where_items, " AND ")
+  }
 
   let sql =
-    "SELECT namespace, source, level, message, created_at FROM logs WHERE "
+    "SELECT namespace, source, level, message, created_at FROM logs "
     <> where_clause
     <> " ORDER BY created_at DESC LIMIT ?"
 
-  let vars =
-    list.concat([[sqlight.text(namespace)], where_values, [sqlight.int(limit)]])
-
+  let vars = list.concat([where_values, [sqlight.int(limit)]])
   let query =
     sqlight.query(
       sql,
