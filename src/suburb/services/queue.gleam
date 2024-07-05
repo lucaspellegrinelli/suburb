@@ -3,10 +3,8 @@ import gleam/dynamic
 import gleam/list
 import gleam/result
 import sqlight
-import suburb/common.{type ServiceError, ConnectorError, ResourceDoesNotExist}
-
-pub type Queue {
-  Queue(namespace: String, queue: String)
+import suburb/types.{
+  type Queue, type ServiceError, ConnectorError, Queue, ResourceDoesNotExist,
 }
 
 const list_query = "SELECT namespace, queue FROM queues WHERE namespace = ?"

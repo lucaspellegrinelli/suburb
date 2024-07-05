@@ -3,10 +3,9 @@ import gleam/dynamic
 import gleam/list
 import gleam/result
 import sqlight
-import suburb/common.{type ServiceError, ConnectorError, ResourceDoesNotExist}
-
-pub type FeatureFlag {
-  FeatureFlag(namespace: String, flag: String, value: String)
+import suburb/types.{
+  type FeatureFlag, type ServiceError, ConnectorError, FeatureFlag,
+  ResourceDoesNotExist,
 }
 
 const list_flags = "SELECT namespace, flag, value FROM feature_flags WHERE namespace = ?"

@@ -3,17 +3,7 @@ import gleam/list
 import gleam/result
 import gleam/string
 import sqlight
-import suburb/common.{type ServiceError, ConnectorError}
-
-pub type Log {
-  Log(
-    namespace: String,
-    source: String,
-    level: String,
-    message: String,
-    created_at: String,
-  )
-}
+import suburb/types.{type Log, type ServiceError, ConnectorError, Log}
 
 pub type LogFilters {
   Source(String)
