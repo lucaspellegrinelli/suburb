@@ -10,8 +10,13 @@ pub fn list_route(req: Request, ctx: Context, namespace: String) -> Response {
   use <- wisp.require_method(req, http.Get)
   case flag.list(ctx.conn, namespace) {
     Ok(values) ->
-      values
-      |> json.array(of: json.string)
+      json.array(values, fn(log) {
+        json.object([
+          #("namespace", json.string(log.namespace)),
+          #("flag", json.string(log.flag)),
+          #("value", json.string(log.value)),
+        ])
+      })
       |> construct_response("success", 200)
     Error(e) -> e |> extract_error |> construct_response("error", 404)
   }

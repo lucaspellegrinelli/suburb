@@ -5,12 +5,10 @@ import gleam/json
 import gleam/list
 import gleam/option.{None}
 import gleam/result
-import gleam/string
 import glint
 import suburb/cli/utils/display.{print_table}
 import suburb/cli/utils/req.{make_request}
 import suburb/connect
-import term_size
 
 pub fn list() -> glint.Command(Nil) {
   use <- glint.command_help("List the logs for a namespace")
@@ -59,7 +57,7 @@ pub fn list() -> glint.Command(Nil) {
     Ok(logs) -> {
       let values = list.map(logs, fn(l) { [l.4, l.0, l.1, l.2, l.3] })
       let headers = ["TIMESTAMP", "NAMESPACE", "SOURCE", "LEVEL", "MESSAGE"]
-      let col_sizes = [24, 16, 12, 16, 99_999]
+      let col_sizes = [24, 16, 16, 12, 99_999]
       print_table(headers, values, col_sizes)
     }
   }

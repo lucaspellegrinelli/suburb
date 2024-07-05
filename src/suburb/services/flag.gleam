@@ -5,7 +5,11 @@ import gleam/result
 import sqlight
 import suburb/common.{type ServiceError, ConnectorError, ResourceDoesNotExist}
 
-const list_flags = "SELECT flag FROM feature_flags WHERE namespace = ?"
+pub type FeatureFlag {
+  FeatureFlag(namespace: String, flag: String, value: String)
+}
+
+const list_flags = "SELECT namespace, flag, value FROM feature_flags WHERE namespace = ?"
 
 const is_created_flag = "SELECT EXISTS(SELECT 1 FROM feature_flags WHERE flag = ? AND namespace = ?)"
 
@@ -23,16 +27,25 @@ const get_flag = "SELECT value FROM feature_flags WHERE flag = ? AND namespace =
 pub fn list(
   conn: sqlight.Connection,
   namespace: String,
-) -> Result(List(String), ServiceError) {
+) -> Result(List(FeatureFlag), ServiceError) {
   let query =
     sqlight.query(
       list_flags,
       on: conn,
       with: [sqlight.text(namespace)],
-      expecting: dynamic.element(0, dynamic.string),
+      expecting: dynamic.tuple3(dynamic.string, dynamic.string, dynamic.string),
     )
 
-  result.replace_error(query, ConnectorError("Failed to list feature flags."))
+  use result <- result.try(result.replace_error(
+    query,
+    ConnectorError("Failed to list feature flags."),
+  ))
+
+  Ok(
+    list.map(result, fn(row) {
+      FeatureFlag(namespace: row.0, flag: row.1, value: row.2)
+    }),
+  )
 }
 
 fn flag_is_created(
