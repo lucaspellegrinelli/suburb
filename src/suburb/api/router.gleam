@@ -1,5 +1,6 @@
 import gleam/http.{Delete, Get, Post}
 import suburb/api/routes/flag
+import suburb/api/routes/log
 import suburb/api/routes/queue
 import suburb/api/web.{type Context}
 import wisp.{type Request, type Response}
@@ -21,6 +22,9 @@ pub fn handle_request(req: Request, ctx: Context) -> Response {
     ["flag", ns, name], Get -> flag.get_route(req, ctx, ns, name)
     ["flag", ns, name], Post -> flag.set_route(req, ctx, ns, name)
     ["flag", ns, name], Delete -> flag.delete_route(req, ctx, ns, name)
+
+    ["log", ns], Get -> log.list_route(req, ctx, ns)
+    ["log", ns], Post -> log.add_route(req, ctx, ns)
     _, _ -> wisp.not_found()
   }
 }

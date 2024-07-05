@@ -2,6 +2,7 @@ import argv
 import glint
 import suburb/cli/flag
 import suburb/cli/host
+import suburb/cli/log
 import suburb/cli/queue
 import suburb/cli/remote
 
@@ -22,5 +23,6 @@ pub fn main() {
   |> glint.add(at: ["flag", "get"], do: flag.get())
   |> glint.add(at: ["flag", "delete"], do: flag.delete())
   |> glint.add(at: ["flag", "list"], do: flag.list())
+  |> glint.add(at: ["log", "list"], do: log.list())
   |> glint.run(argv.load().arguments)
 }

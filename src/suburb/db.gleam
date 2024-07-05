@@ -35,9 +35,25 @@ CREATE TABLE IF NOT EXISTS feature_flags (
 CREATE INDEX IF NOT EXISTS idx_feature_flags_flag_namespace ON feature_flags (flag, namespace);
 "
 
+const create_log_sql = "
+CREATE TABLE IF NOT EXISTS logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  namespace TEXT,
+  source TEXT,
+  level TEXT,
+  message TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_logs_namespace_created_at ON logs (namespace, created_at);
+CREATE INDEX IF NOT EXISTS idx_logs_source_created_at ON logs (source, created_at);
+CREATE INDEX IF NOT EXISTS idx_logs_level_created_at ON logs (level, created_at);
+CREATE INDEX IF NOT EXISTS idx_logs_namespace_source_level_created_at ON logs (namespace, source, level, created_at);
+"
+
 pub fn db_connection(database_path: String, f: fn(sqlight.Connection) -> a) {
   use conn <- sqlight.with_connection(database_path)
-  let sql = string.concat([create_queue_sql, create_feature_flag_sql])
+  let sql =
+    string.concat([create_queue_sql, create_feature_flag_sql, create_log_sql])
   let assert Ok(Nil) = sqlight.exec(sql, conn)
   f(conn)
 }
