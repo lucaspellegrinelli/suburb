@@ -19,6 +19,7 @@ pub fn main() {
   |> glint.add(at: ["queue", "push"], do: queue.push())
   |> glint.add(at: ["queue", "pop"], do: queue.pop())
   |> glint.add(at: ["queue", "peek"], do: queue.peek())
+  |> glint.add(at: ["queue", "delete"], do: queue.delete())
   |> glint.add(at: ["flag", "set"], do: flag.set())
   |> glint.add(at: ["flag", "get"], do: flag.get())
   |> glint.add(at: ["flag", "delete"], do: flag.delete())
