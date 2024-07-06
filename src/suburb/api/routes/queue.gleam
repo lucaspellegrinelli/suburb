@@ -6,6 +6,7 @@ import suburb/api/utils.{construct_response, extract_error}
 import suburb/api/web.{type Context}
 import suburb/coders/queue as queue_coder
 import suburb/services/queue.{Namespace, QueueName}
+import suburb/types.{EmptyQueue}
 import wisp.{type Request, type Response}
 
 pub fn length_route(
@@ -34,7 +35,7 @@ pub fn push_route(
   case message {
     Ok(msg) -> {
       case queue.push(ctx.conn, namespace, queue, msg) {
-        Ok(_) -> "pushed" |> json.string |> construct_response("success", 200)
+        Ok(v) -> v |> json.string |> construct_response("success", 200)
         Error(e) -> e |> extract_error |> construct_response("error", 404)
       }
     }
@@ -52,6 +53,7 @@ pub fn pop_route(
   use <- wisp.require_method(req, http.Post)
   case queue.pop(ctx.conn, namespace, queue) {
     Ok(value) -> value |> json.string |> construct_response("success", 200)
+    Error(EmptyQueue(e)) -> e |> json.string |> construct_response("error", 204)
     Error(e) -> e |> extract_error |> construct_response("error", 404)
   }
 }
@@ -113,6 +115,7 @@ pub fn peek_route(
   use <- wisp.require_method(req, http.Get)
   case queue.peek(ctx.conn, namespace, queue) {
     Ok(value) -> value |> json.string |> construct_response("success", 200)
+    Error(EmptyQueue(e)) -> e |> json.string |> construct_response("error", 204)
     Error(e) -> e |> extract_error |> construct_response("error", 404)
   }
 }
@@ -125,7 +128,10 @@ pub fn delete_route(
 ) -> Response {
   use <- wisp.require_method(req, http.Delete)
   case queue.delete(ctx.conn, namespace, queue) {
-    Ok(_) -> "deleted" |> json.string |> construct_response("success", 200)
+    Ok(_) ->
+      { "Queue " <> queue <> " deleted." }
+      |> json.string
+      |> construct_response("success", 200)
     Error(e) -> e |> extract_error |> construct_response("error", 404)
   }
 }

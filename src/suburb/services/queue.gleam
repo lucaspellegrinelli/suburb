@@ -37,6 +37,7 @@ const push_query = "
     FROM queues q
     WHERE q.queue = ?
       AND q.namespace = ?
+    RETURNING content
   "
 
 const pop_get_query = "
@@ -188,7 +189,7 @@ pub fn push(
       push_query,
       on: conn,
       with: [sqlight.text(value), sqlight.text(name), sqlight.text(namespace)],
-      expecting: dynamic.element(0, dynamic.int),
+      expecting: dynamic.element(0, dynamic.string),
     )
 
   case query {
