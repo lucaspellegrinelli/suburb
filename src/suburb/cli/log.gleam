@@ -5,27 +5,64 @@ import gleam/json
 import gleam/list
 import gleam/option.{None}
 import gleam/result
+import gleam/string
 import glint
 import suburb/cli/utils/display.{print_table}
 import suburb/cli/utils/req.{make_request}
 import suburb/connect
 
-pub fn namespace_flag() -> glint.Flag(String) {
+fn namespace_flag() -> glint.Flag(String) {
   glint.string_flag("namespace")
   |> glint.flag_help("The namespace to list logs for")
+}
+
+fn source_flag() -> glint.Flag(String) {
+  glint.string_flag("source")
+  |> glint.flag_help("The source to list logs for")
+}
+
+fn level_flag() -> glint.Flag(String) {
+  glint.string_flag("level")
+  |> glint.flag_help("The level to list logs for")
+}
+
+fn from_time_flag() -> glint.Flag(String) {
+  glint.string_flag("from-time")
+  |> glint.flag_help("The start time to list logs from")
+}
+
+fn to_time_flag() -> glint.Flag(String) {
+  glint.string_flag("to-time")
+  |> glint.flag_help("The end time to list logs to")
+}
+
+fn create_flag_item(name: String, value: Result(String, a)) {
+  case value {
+    Ok(value) -> name <> "=" <> value
+    Error(_) -> ""
+  }
 }
 
 pub fn list() -> glint.Command(Nil) {
   use <- glint.command_help("List the logs for a namespace")
   use namespace <- glint.flag(namespace_flag())
+  use source <- glint.flag(source_flag())
+  use level <- glint.flag(level_flag())
+  use from_time <- glint.flag(from_time_flag())
+  use to_time <- glint.flag(to_time_flag())
   use _, _, flags <- glint.command()
 
-  let namespace_param = case namespace(flags) {
-    Ok(ns) -> "namespace=" <> ns
-    Error(_) -> ""
-  }
+  let params: List(String) =
+    [
+      create_flag_item("namespace", namespace(flags)),
+      create_flag_item("source", source(flags)),
+      create_flag_item("level", level(flags)),
+      create_flag_item("from_time", from_time(flags)),
+      create_flag_item("to_time", to_time(flags)),
+    ]
+    |> list.filter(fn(x) { !string.is_empty(x) })
 
-  let query_params = "?" <> namespace_param
+  let query_params = "?" <> string.join(params, "&")
   let url = "/log" <> query_params
 
   let result = case connect.remote_connection() {

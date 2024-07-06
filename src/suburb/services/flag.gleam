@@ -2,13 +2,17 @@ import gleam/bool
 import gleam/dynamic
 import gleam/list
 import gleam/result
+import gleam/string
 import sqlight
 import suburb/types.{
   type FeatureFlag, type ServiceError, ConnectorError, FeatureFlag,
   ResourceDoesNotExist,
 }
 
-const list_flags = "SELECT namespace, flag, value FROM feature_flags WHERE namespace = ?"
+pub type FlagFilters {
+  Namespace(String)
+  Flag(String)
+}
 
 const is_created_flag = "SELECT EXISTS(SELECT 1 FROM feature_flags WHERE flag = ? AND namespace = ?)"
 
@@ -25,13 +29,39 @@ const get_flag = "SELECT value FROM feature_flags WHERE flag = ? AND namespace =
 
 pub fn list(
   conn: sqlight.Connection,
-  namespace: String,
+  filters: List(FlagFilters),
 ) -> Result(List(FeatureFlag), ServiceError) {
+  let where_items =
+    list.map(filters, fn(filter) {
+      case filter {
+        Namespace(_) -> "namespace = ?"
+        Flag(_) -> "flag = ?"
+      }
+    })
+
+  let where_values =
+    list.map(filters, fn(filter) {
+      case filter {
+        Namespace(value) -> sqlight.text(value)
+        Flag(value) -> sqlight.text(value)
+      }
+    })
+
+  let where_clause = case list.length(where_items) {
+    0 -> ""
+    _ -> "WHERE " <> string.join(where_items, " AND ")
+  }
+
+  let sql =
+    "SELECT namespace, flag, value FROM feature_flags "
+    <> where_clause
+    <> " ORDER BY created_at DESC"
+
   let query =
     sqlight.query(
-      list_flags,
+      sql,
       on: conn,
-      with: [sqlight.text(namespace)],
+      with: where_values,
       expecting: dynamic.tuple3(dynamic.string, dynamic.string, dynamic.string),
     )
 

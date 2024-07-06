@@ -1,14 +1,27 @@
 import gleam/dynamic
 import gleam/http
 import gleam/json
+import gleam/list
 import suburb/api/utils.{construct_response, extract_error}
 import suburb/api/web.{type Context}
-import suburb/services/flag
+import suburb/services/flag.{Flag, Namespace}
 import wisp.{type Request, type Response}
 
-pub fn list_route(req: Request, ctx: Context, namespace: String) -> Response {
+pub fn list_route(req: Request, ctx: Context) -> Response {
   use <- wisp.require_method(req, http.Get)
-  case flag.list(ctx.conn, namespace) {
+  let query_params = wisp.get_query(req)
+
+  let filters =
+    list.filter_map(query_params, fn(param) {
+      let #(key, value) = param
+      case key {
+        "namespace" -> Ok(Namespace(value))
+        "flag" -> Ok(Flag(value))
+        _ -> Error(Nil)
+      }
+    })
+
+  case flag.list(ctx.conn, filters) {
     Ok(values) ->
       json.array(values, fn(log) {
         json.object([

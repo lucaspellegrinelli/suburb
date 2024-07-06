@@ -5,25 +5,48 @@ import gleam/json
 import gleam/list
 import gleam/option.{None, Some}
 import gleam/result
+import gleam/string
 import glint
 import suburb/cli/utils/display.{print_table}
 import suburb/cli/utils/req.{make_request}
 import suburb/connect
 
+fn namespace_flag() -> glint.Flag(String) {
+  glint.string_flag("namespace")
+  |> glint.flag_help("The namespace to list logs for")
+}
+
+fn flag_flag() -> glint.Flag(String) {
+  glint.string_flag("flag")
+  |> glint.flag_help("The name of the feature flag")
+}
+
+fn create_flag_item(name: String, value: Result(String, a)) {
+  case value {
+    Ok(value) -> name <> "=" <> value
+    Error(_) -> ""
+  }
+}
+
 pub fn list() -> glint.Command(Nil) {
   use <- glint.command_help("List all the feature flags in a namespace")
-  use namespace <- glint.named_arg("namespace")
-  use named, _, _ <- glint.command()
+  use namespace <- glint.flag(namespace_flag())
+  use flag <- glint.flag(flag_flag())
+  use _, _, flags <- glint.command()
+
+  let params: List(String) =
+    [
+      create_flag_item("namespace", namespace(flags)),
+      create_flag_item("flag", flag(flags)),
+    ]
+    |> list.filter(fn(x) { !string.is_empty(x) })
+
+  let query_params = "?" <> string.join(params, "&")
+  let url = "/flag" <> query_params
 
   let result = case connect.remote_connection() {
     Ok(#(host, key)) -> {
-      use resp <- result.try(make_request(
-        host,
-        "/flag/" <> namespace(named) <> "/list",
-        key,
-        http.Get,
-        None,
-      ))
+      use resp <- result.try(make_request(host, url, key, http.Get, None))
 
       let decoded =
         resp

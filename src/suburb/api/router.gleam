@@ -18,7 +18,7 @@ pub fn handle_request(req: Request, ctx: Context) -> Response {
     ["queue", ns, name, "delete"], Delete ->
       queue.delete_route(req, ctx, ns, name)
 
-    ["flag", ns, "list"], Get -> flag.list_route(req, ctx, ns)
+    ["flag"], Get -> flag.list_route(req, ctx)
     ["flag", ns, name], Get -> flag.get_route(req, ctx, ns, name)
     ["flag", ns, name], Post -> flag.set_route(req, ctx, ns, name)
     ["flag", ns, name], Delete -> flag.delete_route(req, ctx, ns, name)
