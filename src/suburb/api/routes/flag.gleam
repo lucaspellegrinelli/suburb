@@ -4,6 +4,7 @@ import gleam/json
 import gleam/list
 import suburb/api/utils.{construct_response, extract_error}
 import suburb/api/web.{type Context}
+import suburb/coders/flag as flag_coder
 import suburb/services/flag.{Flag, Namespace}
 import wisp.{type Request, type Response}
 
@@ -61,7 +62,7 @@ pub fn set_route(
   case value {
     Ok(value) ->
       case flag.set(ctx.conn, namespace, flag, value) {
-        Ok(_) -> "set" |> json.string |> construct_response("success", 200)
+        Ok(v) -> v |> flag_coder.encoder |> construct_response("success", 200)
         Error(e) -> e |> extract_error |> construct_response("error", 404)
       }
     Error(_) ->

@@ -4,6 +4,7 @@ import gleam/json
 import gleam/list
 import suburb/api/utils.{construct_response, extract_error}
 import suburb/api/web.{type Context}
+import suburb/coders/queue as queue_coder
 import suburb/services/queue.{Namespace, QueueName}
 import wisp.{type Request, type Response}
 
@@ -91,7 +92,7 @@ pub fn create_route(req: Request, ctx: Context) -> Response {
   case namespace, queue {
     Ok(ns), Ok(q) -> {
       case queue.create(ctx.conn, ns, q) {
-        Ok(_) -> "created" |> json.string |> construct_response("success", 200)
+        Ok(v) -> v |> queue_coder.encoder |> construct_response("success", 200)
         Error(e) -> e |> extract_error |> construct_response("error", 404)
       }
     }

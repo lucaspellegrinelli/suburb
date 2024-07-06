@@ -8,7 +8,7 @@ import gleam/string
 import glint
 import suburb/cli/utils/display.{print_table}
 import suburb/cli/utils/req.{create_flag_item, make_request}
-import suburb/decoders/log
+import suburb/coders/log
 
 fn namespace_flag() -> glint.Flag(String) {
   glint.string_flag("namespace")

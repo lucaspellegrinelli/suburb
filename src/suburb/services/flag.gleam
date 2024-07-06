@@ -107,18 +107,19 @@ pub fn set(
   namespace: String,
   name: String,
   value: String,
-) -> Result(Nil, ServiceError) {
+) -> Result(FeatureFlag, ServiceError) {
   let query =
     sqlight.query(
       set_flag,
       on: conn,
       with: [sqlight.text(namespace), sqlight.text(name), sqlight.text(value)],
-      expecting: dynamic.element(0, dynamic.int),
+      expecting: dynamic.tuple3(dynamic.string, dynamic.string, dynamic.string),
     )
 
   case query {
-    Ok(_) -> Ok(Nil)
-    Error(_) -> Error(ConnectorError("Failed to set feature flag."))
+    Ok([r]) -> Ok(FeatureFlag(r.0, r.1, r.2))
+    Ok([]) -> Ok(FeatureFlag(namespace, name, value))
+    _ -> Error(ConnectorError("Failed to set feature flag."))
   }
 }
 

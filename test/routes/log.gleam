@@ -6,7 +6,7 @@ import gleeunit/should
 import suburb/api/routes/log as log_route
 import suburb/api/web.{Context}
 import suburb/db
-import suburb/decoders/log as log_coder
+import suburb/coders/log as log_coder
 import suburb/services/log as log_service
 import wisp.{Text}
 import wisp/testing

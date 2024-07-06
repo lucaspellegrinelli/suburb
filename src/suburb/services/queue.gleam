@@ -28,6 +28,7 @@ const length_query = "
 const create_query = "
     INSERT INTO queues (queue, namespace)
     VALUES (?, ?)
+    RETURNING namespace, queue
   "
 
 const push_query = "
@@ -115,7 +116,7 @@ pub fn list(
     ConnectorError("Failed to list queues."),
   ))
 
-  Ok(list.map(result, fn(row) { Queue(namespace: row.0, queue: row.1) }))
+  Ok(list.map(result, fn(row) { Queue(row.0, row.1) }))
 }
 
 fn queue_is_created(
@@ -175,7 +176,7 @@ pub fn push(
   namespace: String,
   name: String,
   value: String,
-) -> Result(Nil, ServiceError) {
+) -> Result(String, ServiceError) {
   use exists <- result.try(queue_is_created(conn, namespace, name))
   use <- bool.guard(
     !exists,
@@ -191,7 +192,7 @@ pub fn push(
     )
 
   case query {
-    Ok(_) -> Ok(Nil)
+    Ok(_) -> Ok(value)
     Error(_) -> Error(ConnectorError("Failed to push value to queue."))
   }
 }
@@ -248,7 +249,7 @@ pub fn create(
   conn: sqlight.Connection,
   namespace: String,
   name: String,
-) -> Result(Nil, ServiceError) {
+) -> Result(Queue, ServiceError) {
   use exists <- result.try(queue_is_created(conn, namespace, name))
   use <- bool.guard(
     exists,
@@ -260,12 +261,12 @@ pub fn create(
       create_query,
       on: conn,
       with: [sqlight.text(name), sqlight.text(namespace)],
-      expecting: dynamic.element(0, dynamic.int),
+      expecting: dynamic.tuple2(dynamic.string, dynamic.string),
     )
 
   case query {
-    Ok(_) -> Ok(Nil)
-    Error(_) -> Error(ConnectorError("Failed to create queue."))
+    Ok([r]) -> Ok(Queue(r.0, r.1))
+    _ -> Error(ConnectorError("Failed to create queue."))
   }
 }
 
