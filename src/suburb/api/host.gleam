@@ -27,12 +27,12 @@ fn get_env_int(name: String, default: Int) -> Int {
 }
 
 pub fn serve() {
-  let port = get_env_int("PORT", 7777)
+  let port = get_env_int("PORT", 8080)
   let api_secret = case envoy.get("API_SECRET") {
     Ok(secret) -> secret
     Error(_) -> {
-      io.println("API_SECRET not set, defaulting to \"secret\"")
-      "secret"
+      io.println("API_SECRET not set, defaulting to \"yoursecrettoken\"")
+      "yoursecrettoken"
     }
   }
   let database_path = case envoy.get("DATABASE_PATH") {

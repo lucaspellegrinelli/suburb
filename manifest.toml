@@ -45,6 +45,7 @@ gleam_stdlib = { version = ">= 0.34.0 and < 2.0.0" }
 gleeunit = { version = ">= 1.0.0 and < 2.0.0" }
 glint = { version = ">= 1.0.0 and < 2.0.0" }
 mist = { version = ">= 1.2.0 and < 2.0.0" }
+simplifile = { version = ">= 2.0.1 and < 3.0.0"}
 sqlight = { version = ">= 0.9.0 and < 1.0.0" }
-term_size = { version = ">= 1.0.1 and < 2.0.0"}
+term_size = { version = ">= 1.0.1 and < 2.0.0" }
 wisp = { version = ">= 0.15.0 and < 1.0.0" }

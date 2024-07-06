@@ -9,7 +9,7 @@ import gleam/option.{type Option, None, Some}
 import gleam/regex
 import gleam/result
 import gleam/string
-import suburb/connect
+import suburb/env.{EnvVars}
 
 const host_info = "^(?:(https?)://)?([^/:]+)(?::(\\d+))?"
 
@@ -26,72 +26,74 @@ pub fn make_request(
   body: Option(json.Json),
   decoder: fn(String) -> Result(a, json.DecodeError),
 ) {
-  case connect.remote_connection() {
-    Ok(#(host, key)) -> {
-      let assert Ok(info_re) = regex.from_string(host_info)
-      let info = case regex.scan(with: info_re, content: host) {
-        [regex.Match(content: _, submatches: m)] -> {
-          case m {
-            [None, Some(host)] -> Ok(#(http.Https, host, None))
-            [Some("http"), Some(host)] -> Ok(#(http.Http, host, None))
-            [Some("https"), Some(host)] -> Ok(#(http.Https, host, None))
-            [Some("http"), Some(host), Some(port)] -> {
-              case int.parse(port) {
-                Ok(port) -> Ok(#(http.Http, host, Some(port)))
-                _ -> Error("Could not parse port")
-              }
-            }
-            _ -> Error("Could not parse host")
+  use EnvVars(env_host, key) <- result.try(env.get_env_variables())
+
+  let assert Ok(info_re) = regex.from_string(host_info)
+  let info = case regex.scan(with: info_re, content: env_host) {
+    [regex.Match(content: _, submatches: m)] -> {
+      case m {
+        [None, Some(host)] -> Ok(#(http.Https, host, None))
+        [Some("http"), Some(host)] -> Ok(#(http.Http, host, None))
+        [Some("https"), Some(host)] -> Ok(#(http.Https, host, None))
+        [Some("http"), Some(host), Some(port)] -> {
+          case int.parse(port) {
+            Ok(port) -> Ok(#(http.Http, host, Some(port)))
+            _ -> Error("Could not parse port")
           }
         }
         _ -> Error("Could not parse host")
       }
+    }
+    _ -> Error("Could not parse host")
+  }
 
-      use #(scheme, host, port) <- result.try(info)
+  use #(scheme, host, port) <- result.try(info)
 
-      let req =
-        request.new()
-        |> request.set_method(method)
-        |> request.set_path(path)
-        |> request.set_host(host)
-        |> request.set_scheme(scheme)
-        |> request.set_header("authorization", key)
-        |> request.set_header("content-type", "application/json")
+  let req =
+    request.new()
+    |> request.set_method(method)
+    |> request.set_path(path)
+    |> request.set_host(host)
+    |> request.set_scheme(scheme)
+    |> request.set_header("authorization", key)
+    |> request.set_header("content-type", "application/json")
 
-      let req = case port {
-        Some(port) -> request.set_port(req, port)
-        None -> req
-      }
+  let req = case port {
+    Some(port) -> request.set_port(req, port)
+    None -> req
+  }
 
-      let req = case body {
-        Some(body) -> body |> json.to_string |> request.set_body(req, _)
-        None -> req
-      }
+  let req = case body {
+    Some(body) -> body |> json.to_string |> request.set_body(req, _)
+    None -> req
+  }
 
-      case httpc.send(req) {
-        Ok(resp) -> {
-          case resp.status {
-            200 ->
-              case decoder(resp.body) {
-                Ok(v) -> Ok(v)
-                Error(_) -> Error("Failed to decode response")
-              }
-            _ -> {
-              let decoded =
-                resp.body
-                |> json.decode(dynamic.field("response", of: dynamic.string))
+  case httpc.send(req) {
+    Ok(resp) -> {
+      case resp.status {
+        200 ->
+          case decoder(resp.body) {
+            Ok(v) -> Ok(v)
+            Error(_) -> Error("Failed to decode response")
+          }
+        _ -> {
+          let decoded =
+            resp.body
+            |> json.decode(dynamic.field("response", of: dynamic.string))
 
-              case decoded {
-                Ok(value) -> Error(value)
-                Error(error) -> Error(json_error_to_str(error))
-              }
-            }
+          case decoded {
+            Ok(value) -> Error(value)
+            Error(error) -> Error(json_error_to_str(error))
           }
         }
-        _ -> Error("Failed to send request")
       }
     }
-    _ -> Error("No connection to a Suburb server")
+    _ ->
+      Error(
+        "Failed to send request to remote.\nPlease check that SUBURB_REMOTE_HOST ("
+        <> env_host
+        <> ") is set correctly.",
+      )
   }
 }
 
