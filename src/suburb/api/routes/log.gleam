@@ -7,7 +7,7 @@ import gleam/pair
 import gleam/result
 import suburb/api/utils.{construct_response, extract_error}
 import suburb/api/web.{type Context}
-import suburb/services/log.{FromTime, Level, Source, UntilTime, Namespace}
+import suburb/services/log.{FromTime, Level, Namespace, Source, UntilTime}
 import wisp.{type Request, type Response}
 
 pub fn list_route(req: Request, ctx: Context) -> Response {
