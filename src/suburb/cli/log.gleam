@@ -35,6 +35,12 @@ fn to_time_flag() -> glint.Flag(String) {
   |> glint.flag_help("The end time to list logs to")
 }
 
+fn limit_flag() -> glint.Flag(String) {
+  glint.string_flag("limit")
+  |> glint.flag_help("The number of logs to list")
+  |> glint.flag_default("25")
+}
+
 pub fn list() -> glint.Command(Nil) {
   use <- glint.command_help("List the logs for a namespace")
   use namespace <- glint.flag(namespace_flag())
@@ -42,6 +48,7 @@ pub fn list() -> glint.Command(Nil) {
   use level <- glint.flag(level_flag())
   use from_time <- glint.flag(from_time_flag())
   use to_time <- glint.flag(to_time_flag())
+  use limit <- glint.flag(limit_flag())
   use _, _, flags <- glint.command()
 
   let params: List(String) =
@@ -51,6 +58,7 @@ pub fn list() -> glint.Command(Nil) {
       create_flag_item("level", level(flags)),
       create_flag_item("from_time", from_time(flags)),
       create_flag_item("to_time", to_time(flags)),
+      create_flag_item("limit", limit(flags)),
     ]
     |> list.filter(fn(x) { !string.is_empty(x) })
 
