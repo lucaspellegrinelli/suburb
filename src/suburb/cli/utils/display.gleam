@@ -13,7 +13,6 @@ fn print_row(row: List(String), col_sizes: List(Int)) {
         value
         |> string.replace("\n", "")
         |> string.replace("\t", "")
-        |> string.replace(" ", "")
       case string.length(value) < size {
         True -> string.pad_right(value, to: size, with: " ")
         False -> string.drop_right(value, string.length(value) - size)

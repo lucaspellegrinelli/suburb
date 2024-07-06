@@ -1,34 +1,82 @@
-import json
-
 import requests
 
 
 class SuburbClient:
-    def __init__(self, host: str, namespace: str, api_key: str):
+    def __init__(self, host, api_key):
         self.host = host
-        self.namespace = namespace
-        self.api_key = api_key
+        self.headers = {
+            "Authorization": f"{api_key}",
+            "Content-Type": "application/json",
+        }
 
-    @property
-    def headers(self):
-        return {"Authorization": f"{self.api_key}"}
+    def list_queues(self):
+        response = requests.get(f"{self.host}/queues", headers=self.headers)
+        return response.json()
 
-    def queue_length(self, name: str) -> int:
-        url = f"{self.host}/queue/{self.namespace}/{name}/length"
-        response = requests.get(url, headers=self.headers)
-        response.raise_for_status()
-        return response.json()["response"]
+    def create_queue(self, namespace, queue):
+        data = {"namespace": namespace, "queue": queue}
+        response = requests.post(f"{self.host}/queues", json=data, headers=self.headers)
+        return response.json()
 
-    def queue_push(self, name: str, data: dict) -> int:
-        url = f"{self.host}/queue/{self.namespace}/{name}"
+    def push_to_queue(self, ns, name, message):
+        data = {"message": message}
         response = requests.post(
-            url, headers=self.headers, json={"value": json.dumps(data)}
+            f"{self.host}/queues/{ns}/{name}", json=data, headers=self.headers
         )
-        response.raise_for_status()
-        return response.json()["response"]
+        return response.json()
 
-    def queue_pop(self, name: str) -> dict:
-        url = f"{self.host}/queue/{self.namespace}/{name}"
-        response = requests.delete(url, headers=self.headers)
-        response.raise_for_status()
-        return json.loads(response.json()["response"])
+    def delete_queue(self, ns, name):
+        response = requests.delete(
+            f"{self.host}/queues/{ns}/{name}", headers=self.headers
+        )
+        return response.json()
+
+    def peek_queue(self, ns, name):
+        response = requests.get(
+            f"{self.host}/queues/{ns}/{name}/peek", headers=self.headers
+        )
+        return response.json()
+
+    def pop_queue(self, ns, name):
+        response = requests.post(
+            f"{self.host}/queues/{ns}/{name}/pop", headers=self.headers
+        )
+        return response.json()
+
+    def get_queue_length(self, ns, name):
+        response = requests.get(
+            f"{self.host}/queues/{ns}/{name}/length", headers=self.headers
+        )
+        return response.json()
+
+    def list_flags(self):
+        response = requests.get(f"{self.host}/flags", headers=self.headers)
+        return response.json()
+
+    def get_flag(self, ns, name):
+        response = requests.get(f"{self.host}/flags/{ns}/{name}", headers=self.headers)
+        return response.json()
+
+    def set_flag(self, ns, name, value):
+        data = {"value": value}
+        response = requests.post(
+            f"{self.host}/flags/{ns}/{name}", json=data, headers=self.headers
+        )
+        return response.json()
+
+    def delete_flag(self, ns, name):
+        response = requests.delete(
+            f"{self.host}/flags/{ns}/{name}", headers=self.headers
+        )
+        return response.json()
+
+    def list_logs(self):
+        response = requests.get(f"{self.host}/logs", headers=self.headers)
+        return response.json()
+
+    def add_log(self, ns, source, level, message):
+        data = {"source": source, "level": level, "message": message}
+        response = requests.post(
+            f"{self.host}/logs/{ns}", json=data, headers=self.headers
+        )
+        return response.json()
