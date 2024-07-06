@@ -55,7 +55,7 @@ pub fn list() -> glint.Command(Nil) {
     Ok(queues) -> {
       let values = list.map(queues, fn(l) { [l.0, l.1] })
       let headers = ["NAMESPACE", "QUEUE"]
-      let col_sizes = [16, 999_999]
+      let col_sizes = [16, 999]
       print_table(headers, values, col_sizes)
     }
   }

@@ -82,7 +82,7 @@ pub fn list() -> glint.Command(Nil) {
     Ok(logs) -> {
       let values = list.map(logs, fn(l) { [l.4, l.0, l.1, l.2, l.3] })
       let headers = ["TIMESTAMP", "NAMESPACE", "SOURCE", "LEVEL", "MESSAGE"]
-      let col_sizes = [24, 16, 16, 12, 99_999]
+      let col_sizes = [24, 16, 16, 12, 999]
       print_table(headers, values, col_sizes)
     }
   }

@@ -57,7 +57,7 @@ pub fn list() -> glint.Command(Nil) {
     Ok(flags) -> {
       let values = list.map(flags, fn(l) { [l.0, l.1, l.2] })
       let headers = ["NAMESPACE", "FLAG", "VALUE"]
-      let col_sizes = [16, 16, 99_999]
+      let col_sizes = [16, 16, 999]
       print_table(headers, values, col_sizes)
     }
   }
