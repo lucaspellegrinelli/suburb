@@ -16,6 +16,7 @@ pub type LogFilters {
 const add_log = "
   INSERT INTO logs (namespace, source, level, message)
   VALUES (?, ?, ?, ?)
+  RETURNING namespace, source, level, message, created_at;
 "
 
 pub fn list(
@@ -56,6 +57,7 @@ pub fn list(
     <> " ORDER BY created_at DESC LIMIT ?"
 
   let vars = list.concat([where_values, [sqlight.int(limit)]])
+
   let query =
     sqlight.query(
       sql,
@@ -94,7 +96,7 @@ pub fn add(
   source: String,
   level: String,
   message: String,
-) -> Result(Nil, ServiceError) {
+) -> Result(Log, ServiceError) {
   let query =
     sqlight.query(
       add_log,
@@ -105,11 +107,17 @@ pub fn add(
         sqlight.text(level),
         sqlight.text(message),
       ],
-      expecting: dynamic.element(0, dynamic.int),
+      expecting: dynamic.tuple5(
+        dynamic.string,
+        dynamic.string,
+        dynamic.string,
+        dynamic.string,
+        dynamic.string,
+      ),
     )
 
   case query {
-    Ok(_) -> Ok(Nil)
-    Error(_) -> Error(ConnectorError("Failed to add log."))
+    Ok([r]) -> Ok(Log(r.0, r.1, r.2, r.3, r.4))
+    _ -> Error(ConnectorError("Failed to add log."))
   }
 }

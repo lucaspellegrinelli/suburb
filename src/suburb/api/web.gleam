@@ -1,6 +1,5 @@
 import gleam/bool
 import gleam/dict
-import gleam/erlang/process
 import gleam/json
 import sqlight
 import wisp

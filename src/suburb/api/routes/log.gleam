@@ -7,6 +7,7 @@ import gleam/pair
 import gleam/result
 import suburb/api/utils.{construct_response, extract_error}
 import suburb/api/web.{type Context}
+import suburb/decoders/log as logd
 import suburb/services/log.{FromTime, Level, Namespace, Source, UntilTime}
 import wisp.{type Request, type Response}
 
@@ -64,7 +65,7 @@ pub fn add_route(req: Request, ctx: Context, namespace: String) -> Response {
   case source, level, message {
     Ok(s), Ok(l), Ok(m) -> {
       case log.add(ctx.conn, namespace, s, l, m) {
-        Ok(_) -> "added" |> json.string |> construct_response("success", 200)
+        Ok(v) -> v |> logd.encoder |> construct_response("success", 200)
         Error(e) -> e |> extract_error |> construct_response("error", 404)
       }
     }
