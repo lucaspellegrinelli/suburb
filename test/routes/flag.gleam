@@ -1,7 +1,5 @@
 import gleam/dynamic
-import gleam/io
 import gleam/json
-import gleam/list
 import gleam/string_builder
 import gleeunit/should
 import suburb/api/routes/flag as flag_route

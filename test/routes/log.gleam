@@ -5,8 +5,8 @@ import gleam/string_builder
 import gleeunit/should
 import suburb/api/routes/log as log_route
 import suburb/api/web.{Context}
-import suburb/db
 import suburb/coders/log as log_coder
+import suburb/db
 import suburb/services/log as log_service
 import wisp.{Text}
 import wisp/testing
