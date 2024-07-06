@@ -19,5 +19,7 @@ pub type Log {
 pub type ServiceError {
   InvalidKey(String)
   ResourceDoesNotExist(String)
+  ResourceAlreadyExists(String)
+  EmptyQueue(String)
   ConnectorError(String)
 }

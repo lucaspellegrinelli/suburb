@@ -1,13 +1,17 @@
 import gleam/json
 import suburb/types.{
-  type ServiceError, ConnectorError, InvalidKey, ResourceDoesNotExist,
+  type ServiceError, ConnectorError, EmptyQueue, InvalidKey,
+  ResourceAlreadyExists, ResourceDoesNotExist,
 }
 import wisp
 
 pub fn extract_error(e: ServiceError) {
   case e {
-    InvalidKey(e) | ConnectorError(e) | ResourceDoesNotExist(e) ->
-      json.string(e)
+    InvalidKey(e)
+    | ConnectorError(e)
+    | EmptyQueue(e)
+    | ResourceDoesNotExist(e)
+    | ResourceAlreadyExists(e) -> json.string(e)
   }
 }
 

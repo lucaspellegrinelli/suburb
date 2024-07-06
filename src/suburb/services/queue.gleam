@@ -1,12 +1,12 @@
 import gleam/bool
 import gleam/dynamic
-import gleam/io
 import gleam/list
 import gleam/result
 import gleam/string
 import sqlight
 import suburb/types.{
-  type Queue, type ServiceError, ConnectorError, Queue, ResourceDoesNotExist,
+  type Queue, type ServiceError, ConnectorError, EmptyQueue, Queue,
+  ResourceAlreadyExists, ResourceDoesNotExist,
 }
 
 pub type QueueFilters {
@@ -220,6 +220,11 @@ pub fn pop(
     ConnectorError("Failed to pop value from queue."),
   ))
 
+  use <- bool.guard(
+    list.is_empty(result),
+    Error(EmptyQueue("Queue " <> name <> " is empty.")),
+  )
+
   use #(id, content) <- result.try(result.replace_error(
     list.first(result),
     ConnectorError("Failed to pop value from queue."),
@@ -247,7 +252,7 @@ pub fn create(
   use exists <- result.try(queue_is_created(conn, namespace, name))
   use <- bool.guard(
     exists,
-    Error(ResourceDoesNotExist("Queue " <> name <> " already exists.")),
+    Error(ResourceAlreadyExists("Queue " <> name <> " already exists.")),
   )
 
   let query =
@@ -287,6 +292,11 @@ pub fn peek(
     query,
     ConnectorError("Failed to peek value from queue."),
   ))
+
+  use <- bool.guard(
+    list.is_empty(result),
+    Error(EmptyQueue("Queue " <> name <> " is empty.")),
+  )
 
   Ok(result.unwrap(list.first(result), ""))
 }
