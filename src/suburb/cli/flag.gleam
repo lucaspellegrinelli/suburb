@@ -4,12 +4,10 @@ import gleam/io
 import gleam/json
 import gleam/list
 import gleam/option.{None, Some}
-import gleam/result
 import gleam/string
 import glint
 import suburb/cli/utils/display.{print_table}
-import suburb/cli/utils/req.{make_request}
-import suburb/connect
+import suburb/cli/utils/req.{create_flag_item, make_request}
 
 fn namespace_flag() -> glint.Flag(String) {
   glint.string_flag("namespace")
@@ -19,13 +17,6 @@ fn namespace_flag() -> glint.Flag(String) {
 fn flag_flag() -> glint.Flag(String) {
   glint.string_flag("flag")
   |> glint.flag_help("The name of the feature flag")
-}
-
-fn create_flag_item(name: String, value: Result(String, a)) {
-  case value {
-    Ok(value) -> name <> "=" <> value
-    Error(_) -> ""
-  }
 }
 
 pub fn list() -> glint.Command(Nil) {
@@ -42,37 +33,26 @@ pub fn list() -> glint.Command(Nil) {
     |> list.filter(fn(x) { !string.is_empty(x) })
 
   let query_params = "?" <> string.join(params, "&")
-  let url = "/flag" <> query_params
+  let url = "/flags" <> query_params
 
-  let result = case connect.remote_connection() {
-    Ok(#(host, key)) -> {
-      use resp <- result.try(make_request(host, url, key, http.Get, None))
+  let decoder = fn(body: String) {
+    body
+    |> json.decode(dynamic.field(
+      "response",
+      of: dynamic.list(of: fn(item) {
+        let assert Ok(ns) =
+          item |> dynamic.field(named: "namespace", of: dynamic.string)
+        let assert Ok(flag) =
+          item |> dynamic.field(named: "flag", of: dynamic.string)
+        let assert Ok(value) =
+          item |> dynamic.field(named: "value", of: dynamic.string)
 
-      let decoded =
-        resp
-        |> json.decode(dynamic.field(
-          "response",
-          of: dynamic.list(of: fn(item) {
-            let assert Ok(ns) =
-              item |> dynamic.field(named: "namespace", of: dynamic.string)
-            let assert Ok(flag) =
-              item |> dynamic.field(named: "flag", of: dynamic.string)
-            let assert Ok(value) =
-              item |> dynamic.field(named: "value", of: dynamic.string)
-
-            Ok(#(ns, flag, value))
-          }),
-        ))
-
-      case decoded {
-        Ok(flags) -> Ok(flags)
-        Error(_) -> Error("Failed to decode response")
-      }
-    }
-    _ -> Error("No connection to a Suburb server")
+        Ok(#(ns, flag, value))
+      }),
+    ))
   }
 
-  case result {
+  case make_request(url, http.Get, None, decoder) {
     Error(e) -> io.println(e)
     Ok(flags) -> {
       let values = list.map(flags, fn(l) { [l.0, l.1, l.2] })
@@ -90,29 +70,19 @@ pub fn set() -> glint.Command(Nil) {
   use value <- glint.named_arg("value")
   use named, _, _ <- glint.command()
 
-  let result = case connect.remote_connection() {
-    Ok(#(host, key)) -> {
-      use resp <- result.try(make_request(
-        host,
-        "/flag/" <> namespace(named) <> "/" <> name(named),
-        key,
-        http.Post,
-        Some(value(named)),
-      ))
-
-      let decoded =
-        resp
-        |> json.decode(dynamic.field("response", of: dynamic.string))
-
-      case decoded {
-        Ok(response) -> Ok(response)
-        Error(_) -> Error("Failed to decode response")
-      }
-    }
-    _ -> Error("No connection to a Suburb server")
+  let url = "/flags/" <> namespace(named) <> "/" <> name(named)
+  let decoder = fn(body: String) {
+    body
+    |> json.decode(dynamic.field("response", of: dynamic.string))
   }
+  let body =
+    json.object([
+      #("namespace", json.string(namespace(named))),
+      #("flag", json.string(name(named))),
+      #("value", json.string(value(named))),
+    ])
 
-  case result {
+  case make_request(url, http.Post, Some(body), decoder) {
     Error(e) -> io.println(e)
     Ok(response) -> io.println(response)
   }
@@ -124,29 +94,13 @@ pub fn get() -> glint.Command(Nil) {
   use name <- glint.named_arg("name")
   use named, _, _ <- glint.command()
 
-  let result = case connect.remote_connection() {
-    Ok(#(host, key)) -> {
-      use resp <- result.try(make_request(
-        host,
-        "/flag/" <> namespace(named) <> "/" <> name(named),
-        key,
-        http.Get,
-        None,
-      ))
-
-      let decoded =
-        resp
-        |> json.decode(dynamic.field("response", of: dynamic.string))
-
-      case decoded {
-        Ok(response) -> Ok(response)
-        Error(_) -> Error("Failed to decode response")
-      }
-    }
-    _ -> Error("No connection to a Suburb server")
+  let url = "/flags/" <> namespace(named) <> "/" <> name(named)
+  let decoder = fn(body: String) {
+    body
+    |> json.decode(dynamic.field("response", of: dynamic.string))
   }
 
-  case result {
+  case make_request(url, http.Get, None, decoder) {
     Error(e) -> io.println(e)
     Ok(response) -> io.println(response)
   }
@@ -158,29 +112,13 @@ pub fn delete() -> glint.Command(Nil) {
   use name <- glint.named_arg("name")
   use named, _, _ <- glint.command()
 
-  let result = case connect.remote_connection() {
-    Ok(#(host, key)) -> {
-      use resp <- result.try(make_request(
-        host,
-        "/flag/" <> namespace(named) <> "/" <> name(named),
-        key,
-        http.Delete,
-        None,
-      ))
-
-      let decoded =
-        resp
-        |> json.decode(dynamic.field("response", of: dynamic.string))
-
-      case decoded {
-        Ok(response) -> Ok(response)
-        Error(_) -> Error("Failed to decode response")
-      }
-    }
-    _ -> Error("No connection to a Suburb server")
+  let url = "/flags/" <> namespace(named) <> "/" <> name(named)
+  let decoder = fn(body: String) {
+    body
+    |> json.decode(dynamic.field("response", of: dynamic.string))
   }
 
-  case result {
+  case make_request(url, http.Delete, None, decoder) {
     Error(e) -> io.println(e)
     Ok(response) -> io.println(response)
   }

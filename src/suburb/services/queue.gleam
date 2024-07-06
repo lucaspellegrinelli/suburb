@@ -1,3 +1,4 @@
+import gleam/io
 import gleam/bool
 import gleam/dynamic
 import gleam/list

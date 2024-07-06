@@ -28,11 +28,11 @@ pub fn push_route(
 ) -> Response {
   use <- wisp.require_method(req, http.Post)
   use json <- wisp.require_json(req)
-  let value = json |> dynamic.field("value", dynamic.string)
+  let message = json |> dynamic.field("message", dynamic.string)
 
-  case value {
-    Ok(value) -> {
-      case queue.push(ctx.conn, namespace, queue, value) {
+  case message {
+    Ok(msg) -> {
+      case queue.push(ctx.conn, namespace, queue, msg) {
         Ok(_) -> "pushed" |> json.string |> construct_response("success", 200)
         Error(e) -> e |> extract_error |> construct_response("error", 404)
       }
@@ -48,7 +48,7 @@ pub fn pop_route(
   namespace: String,
   queue: String,
 ) -> Response {
-  use <- wisp.require_method(req, http.Delete)
+  use <- wisp.require_method(req, http.Post)
   case queue.pop(ctx.conn, namespace, queue) {
     Ok(value) -> value |> json.string |> construct_response("success", 200)
     Error(e) -> e |> extract_error |> construct_response("error", 404)
@@ -82,20 +82,24 @@ pub fn list_route(req: Request, ctx: Context) -> Response {
   }
 }
 
-pub fn create_route(req: Request, ctx: Context, namespace: String) -> Response {
+pub fn create_route(req: Request, ctx: Context) -> Response {
   use <- wisp.require_method(req, http.Post)
   use json <- wisp.require_json(req)
-  let value = json |> dynamic.field("value", dynamic.string)
+  let namespace = json |> dynamic.field("namespace", dynamic.string)
+  let queue = json |> dynamic.field("queue", dynamic.string)
 
-  case value {
-    Ok(value) -> {
-      case queue.create(ctx.conn, namespace, value) {
+  case namespace, queue {
+    Ok(ns), Ok(q) -> {
+      case queue.create(ctx.conn, ns, q) {
         Ok(_) -> "created" |> json.string |> construct_response("success", 200)
         Error(e) -> e |> extract_error |> construct_response("error", 404)
       }
     }
-    Error(_) ->
-      json.string("Couldn't parse value") |> construct_response("error", 400)
+    _, Error(_) ->
+      json.string("Couldn't parse namespace")
+      |> construct_response("error", 400)
+    Error(_), _ ->
+      json.string("Couldn't parse queue") |> construct_response("error", 400)
   }
 }
 

@@ -9,22 +9,22 @@ pub fn handle_request(req: Request, ctx: Context) -> Response {
   use req <- web.middleware(req, ctx)
 
   case wisp.path_segments(req), req.method {
-    ["queue"], Get -> queue.list_route(req, ctx)
-    ["queue", ns, "create"], Post -> queue.create_route(req, ctx, ns)
-    ["queue", ns, name], Get -> queue.peek_route(req, ctx, ns, name)
-    ["queue", ns, name], Post -> queue.push_route(req, ctx, ns, name)
-    ["queue", ns, name], Delete -> queue.pop_route(req, ctx, ns, name)
-    ["queue", ns, name, "length"], Get -> queue.length_route(req, ctx, ns, name)
-    ["queue", ns, name, "delete"], Delete ->
-      queue.delete_route(req, ctx, ns, name)
+    ["queues"], Get -> queue.list_route(req, ctx)
+    ["queues"], Post -> queue.create_route(req, ctx)
+    ["queues", ns, name], Post -> queue.push_route(req, ctx, ns, name)
+    ["queues", ns, name], Delete -> queue.delete_route(req, ctx, ns, name)
+    ["queues", ns, name, "peek"], Get -> queue.peek_route(req, ctx, ns, name)
+    ["queues", ns, name, "pop"], Post -> queue.pop_route(req, ctx, ns, name)
+    ["queues", ns, name, "length"], Get ->
+      queue.length_route(req, ctx, ns, name)
 
-    ["flag"], Get -> flag.list_route(req, ctx)
-    ["flag", ns, name], Get -> flag.get_route(req, ctx, ns, name)
-    ["flag", ns, name], Post -> flag.set_route(req, ctx, ns, name)
-    ["flag", ns, name], Delete -> flag.delete_route(req, ctx, ns, name)
+    ["flags"], Get -> flag.list_route(req, ctx)
+    ["flags", ns, name], Get -> flag.get_route(req, ctx, ns, name)
+    ["flags", ns, name], Post -> flag.set_route(req, ctx, ns, name)
+    ["flags", ns, name], Delete -> flag.delete_route(req, ctx, ns, name)
 
-    ["log"], Get -> log.list_route(req, ctx)
-    ["log", ns], Post -> log.add_route(req, ctx, ns)
+    ["logs"], Get -> log.list_route(req, ctx)
+    ["logs", ns], Post -> log.add_route(req, ctx, ns)
     _, _ -> wisp.not_found()
   }
 }

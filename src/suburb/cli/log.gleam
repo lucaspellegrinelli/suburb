@@ -4,12 +4,10 @@ import gleam/io
 import gleam/json
 import gleam/list
 import gleam/option.{None}
-import gleam/result
 import gleam/string
 import glint
 import suburb/cli/utils/display.{print_table}
-import suburb/cli/utils/req.{make_request}
-import suburb/connect
+import suburb/cli/utils/req.{create_flag_item, make_request}
 
 fn namespace_flag() -> glint.Flag(String) {
   glint.string_flag("namespace")
@@ -36,13 +34,6 @@ fn to_time_flag() -> glint.Flag(String) {
   |> glint.flag_help("The end time to list logs to")
 }
 
-fn create_flag_item(name: String, value: Result(String, a)) {
-  case value {
-    Ok(value) -> name <> "=" <> value
-    Error(_) -> ""
-  }
-}
-
 pub fn list() -> glint.Command(Nil) {
   use <- glint.command_help("List the logs for a namespace")
   use namespace <- glint.flag(namespace_flag())
@@ -63,40 +54,30 @@ pub fn list() -> glint.Command(Nil) {
     |> list.filter(fn(x) { !string.is_empty(x) })
 
   let query_params = "?" <> string.join(params, "&")
-  let url = "/log" <> query_params
+  let url = "/logs" <> query_params
 
-  let result = case connect.remote_connection() {
-    Ok(#(host, key)) -> {
-      use resp <- result.try(make_request(host, url, key, http.Get, None))
+  let decoder = fn(body: String) {
+    body
+    |> json.decode(dynamic.field(
+      "response",
+      of: dynamic.list(of: fn(item) {
+        let assert Ok(ns) =
+          item |> dynamic.field(named: "namespace", of: dynamic.string)
+        let assert Ok(src) =
+          item |> dynamic.field(named: "source", of: dynamic.string)
+        let assert Ok(lvl) =
+          item |> dynamic.field(named: "level", of: dynamic.string)
+        let assert Ok(msg) =
+          item |> dynamic.field(named: "message", of: dynamic.string)
+        let assert Ok(when) =
+          item |> dynamic.field(named: "created_at", of: dynamic.string)
 
-      let decoded =
-        resp
-        |> json.decode(dynamic.field(
-          "response",
-          of: dynamic.list(of: fn(item) {
-            let assert Ok(ns) =
-              item |> dynamic.field(named: "namespace", of: dynamic.string)
-            let assert Ok(src) =
-              item |> dynamic.field(named: "source", of: dynamic.string)
-            let assert Ok(lvl) =
-              item |> dynamic.field(named: "level", of: dynamic.string)
-            let assert Ok(msg) =
-              item |> dynamic.field(named: "message", of: dynamic.string)
-            let assert Ok(when) =
-              item |> dynamic.field(named: "created_at", of: dynamic.string)
-            Ok(#(ns, src, lvl, msg, when))
-          }),
-        ))
-
-      case decoded {
-        Ok(logs) -> Ok(logs)
-        Error(_) -> Error("Failed to decode response")
-      }
-    }
-    _ -> Error("No connection to a Suburb server")
+        Ok(#(ns, src, lvl, msg, when))
+      }),
+    ))
   }
 
-  case result {
+  case make_request(url, http.Get, None, decoder) {
     Error(e) -> io.println(e)
     Ok(logs) -> {
       let values = list.map(logs, fn(l) { [l.4, l.0, l.1, l.2, l.3] })
