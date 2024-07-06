@@ -9,7 +9,7 @@ pub fn handle_request(req: Request, ctx: Context) -> Response {
   use req <- web.middleware(req, ctx)
 
   case wisp.path_segments(req), req.method {
-    ["queue", ns, "list"], Get -> queue.list_route(req, ctx, ns)
+    ["queue"], Get -> queue.list_route(req, ctx)
     ["queue", ns, "create"], Post -> queue.create_route(req, ctx, ns)
     ["queue", ns, name], Get -> queue.peek_route(req, ctx, ns, name)
     ["queue", ns, name], Post -> queue.push_route(req, ctx, ns, name)

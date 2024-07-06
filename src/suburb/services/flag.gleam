@@ -55,7 +55,7 @@ pub fn list(
   let sql =
     "SELECT namespace, flag, value FROM feature_flags "
     <> where_clause
-    <> " ORDER BY created_at DESC"
+    <> " ORDER BY namespace, flag ASC"
 
   let query =
     sqlight.query(

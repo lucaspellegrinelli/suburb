@@ -2,12 +2,16 @@ import gleam/bool
 import gleam/dynamic
 import gleam/list
 import gleam/result
+import gleam/string
 import sqlight
 import suburb/types.{
   type Queue, type ServiceError, ConnectorError, Queue, ResourceDoesNotExist,
 }
 
-const list_query = "SELECT namespace, queue FROM queues WHERE namespace = ?"
+pub type QueueFilters {
+  Namespace(String)
+  QueueName(String)
+}
 
 const is_created_query = "SELECT EXISTS(SELECT 1 FROM queues WHERE queue = ? AND namespace = ?)"
 
@@ -69,13 +73,39 @@ const delete_query = "
 
 pub fn list(
   conn: sqlight.Connection,
-  namespace: String,
+  filters: List(QueueFilters),
 ) -> Result(List(Queue), ServiceError) {
+  let where_items =
+    list.map(filters, fn(filter) {
+      case filter {
+        Namespace(_) -> "namespace = ?"
+        QueueName(_) -> "queue = ?"
+      }
+    })
+
+  let where_values =
+    list.map(filters, fn(filter) {
+      case filter {
+        Namespace(value) -> sqlight.text(value)
+        QueueName(value) -> sqlight.text(value)
+      }
+    })
+
+  let where_clause = case list.length(where_items) {
+    0 -> ""
+    _ -> "WHERE " <> string.join(where_items, " AND ")
+  }
+
+  let sql =
+    "SELECT namespace, queue FROM queues "
+    <> where_clause
+    <> " ORDER BY namespace, queue ASC"
+
   let query =
     sqlight.query(
-      list_query,
+      sql,
       on: conn,
-      with: [sqlight.text(namespace)],
+      with: where_values,
       expecting: dynamic.tuple2(dynamic.string, dynamic.string),
     )
 
