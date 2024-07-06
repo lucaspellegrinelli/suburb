@@ -25,10 +25,8 @@ pub fn flag_set_test() {
 pub fn flag_get_test() {
   use conn <- db.db_connection(":memory:")
   flag.set(conn, "ns", "flag", "val") |> should.be_ok()
-  case flag.get(conn, "ns", "flag") {
-    Ok("val") -> Nil
-    _ -> should.fail()
-  }
+  flag.get(conn, "ns", "flag")
+  |> should.equal(Ok(FeatureFlag("ns", "flag", "val")))
 }
 
 pub fn flag_get_from_non_existent_flag_test() {
@@ -43,10 +41,8 @@ pub fn flag_override_value_test() {
   use conn <- db.db_connection(":memory:")
   flag.set(conn, "ns", "flag", "val") |> should.be_ok()
   flag.set(conn, "ns", "flag", "new_val") |> should.be_ok()
-  case flag.get(conn, "ns", "flag") {
-    Ok("new_val") -> Nil
-    _ -> should.fail()
-  }
+  flag.get(conn, "ns", "flag")
+  |> should.equal(Ok(FeatureFlag("ns", "flag", "new_val")))
 }
 
 pub fn flag_delete_test() {

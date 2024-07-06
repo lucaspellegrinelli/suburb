@@ -44,7 +44,8 @@ pub fn get_route(
 ) -> Response {
   use <- wisp.require_method(req, http.Get)
   case flag.get(ctx.conn, namespace, flag) {
-    Ok(value) -> value |> json.string |> construct_response("success", 200)
+    Ok(value) ->
+      value |> flag_coder.encoder |> construct_response("success", 200)
     Error(e) -> e |> extract_error |> construct_response("error", 404)
   }
 }
@@ -78,7 +79,10 @@ pub fn delete_route(
 ) -> Response {
   use <- wisp.require_method(req, http.Delete)
   case flag.delete(ctx.conn, namespace, flag) {
-    Ok(_) -> "deleted" |> json.string |> construct_response("success", 200)
+    Ok(_) ->
+      { "Feature Flag " <> flag <> " has been deleted." }
+      |> json.string
+      |> construct_response("success", 200)
     Error(e) -> e |> extract_error |> construct_response("error", 404)
   }
 }

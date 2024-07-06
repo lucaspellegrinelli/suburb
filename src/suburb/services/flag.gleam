@@ -25,7 +25,7 @@ const set_flag = "
     DO UPDATE SET value = excluded.value;
   "
 
-const get_flag = "SELECT value FROM feature_flags WHERE flag = ? AND namespace = ?"
+const get_flag = "SELECT namespace, flag, value FROM feature_flags WHERE flag = ? AND namespace = ?"
 
 pub fn list(
   conn: sqlight.Connection,
@@ -127,7 +127,7 @@ pub fn get(
   conn: sqlight.Connection,
   namespace: String,
   name: String,
-) -> Result(String, ServiceError) {
+) -> Result(FeatureFlag, ServiceError) {
   use exists <- result.try(flag_is_created(conn, namespace, name))
   use <- bool.guard(
     !exists,
@@ -139,7 +139,7 @@ pub fn get(
       get_flag,
       on: conn,
       with: [sqlight.text(name), sqlight.text(namespace)],
-      expecting: dynamic.element(0, dynamic.string),
+      expecting: dynamic.tuple3(dynamic.string, dynamic.string, dynamic.string),
     )
 
   use result <- result.try(result.replace_error(
@@ -147,7 +147,10 @@ pub fn get(
     ConnectorError("Failed to get feature flag."),
   ))
 
-  Ok(result.unwrap(list.first(result), ""))
+  case list.first(result) {
+    Ok(r) -> Ok(FeatureFlag(r.0, r.1, r.2))
+    _ -> Error(ConnectorError("Failed to get feature flag."))
+  }
 }
 
 pub fn delete(
