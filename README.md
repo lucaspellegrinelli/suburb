@@ -61,6 +61,14 @@ To access these features in your code you can send HTTP requests following the A
  - Python Client (IN PROGRESS)
  - Javascript Client (IN PROGRESS)
 
+## Running tests
+
+To run the tests you can use the following command
+
+```
+gleam test
+```
+
 ## License
 
 Distributed under the Apache License 2.0. See [LICENSE](https://github.com/lucaspellegrinelli/suburb/blob/main/LICENSE) for more information.
