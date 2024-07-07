@@ -8,6 +8,7 @@ import gleam/string
 import glint
 import suburb/cli/utils/display.{print_table}
 import suburb/cli/utils/req.{create_flag_item, make_request}
+import suburb/coders/flag as flag_coder
 
 fn namespace_flag() -> glint.Flag(String) {
   glint.string_flag("namespace")
@@ -39,23 +40,14 @@ pub fn list() -> glint.Command(Nil) {
     body
     |> json.decode(dynamic.field(
       "response",
-      of: dynamic.list(of: fn(item) {
-        let assert Ok(ns) =
-          item |> dynamic.field(named: "namespace", of: dynamic.string)
-        let assert Ok(flag) =
-          item |> dynamic.field(named: "flag", of: dynamic.string)
-        let assert Ok(value) =
-          item |> dynamic.field(named: "value", of: dynamic.string)
-
-        Ok(#(ns, flag, value))
-      }),
+      of: dynamic.list(of: flag_coder.decoder),
     ))
   }
 
   case make_request(url, http.Get, None, decoder) {
     Error(e) -> io.println(e)
     Ok(flags) -> {
-      let values = list.map(flags, fn(l) { [l.0, l.1, l.2] })
+      let values = list.map(flags, fn(l) { [l.namespace, l.flag, l.value] })
       let headers = ["NAMESPACE", "FLAG", "VALUE"]
       let col_sizes = [16, 16, 999]
       print_table(headers, values, col_sizes)
@@ -73,7 +65,7 @@ pub fn set() -> glint.Command(Nil) {
   let url = "/flags/" <> namespace(named) <> "/" <> name(named)
   let decoder = fn(body: String) {
     body
-    |> json.decode(dynamic.field("response", of: dynamic.string))
+    |> json.decode(dynamic.field("response", of: flag_coder.decoder))
   }
   let body =
     json.object([
@@ -84,7 +76,12 @@ pub fn set() -> glint.Command(Nil) {
 
   case make_request(url, http.Post, Some(body), decoder) {
     Error(e) -> io.println(e)
-    Ok(response) -> io.println(response)
+    Ok(flag) -> {
+      let values = [[flag.namespace, flag.flag, flag.value]]
+      let headers = ["NAMESPACE", "FLAG", "VALUE"]
+      let col_sizes = [16, 16, 999]
+      print_table(headers, values, col_sizes)
+    }
   }
 }
 
