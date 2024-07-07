@@ -2,16 +2,16 @@
 
 set -euo pipefail
 
+if ! gleam export erlang-shipment; then
+    echo "Failed to export Gleam shipment"
+    exit 1
+fi
+
 mkdir -p ~/.suburb/build
 mkdir -p ~/.suburb/bin
 
 rm -rf ~/.suburb/build/*
 rm -rf ~/.suburb/bin/*
-
-if ! gleam export erlang-shipment; then
-    echo "Failed to export Gleam shipment"
-    exit 1
-fi
 
 if ! mv ./build/erlang-shipment/* ~/.suburb/build; then
     echo "Failed to move files to ~/.suburb/build"

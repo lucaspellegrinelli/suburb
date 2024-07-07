@@ -7,6 +7,14 @@
   </p>
 </p>
 
+## Installing
+
+Right now the way to install the CLI tool is via the [INSTALL.sh](https://github.com/lucaspellegrinelli/suburb/blob/main/INSTALL.sh) script. You can run it by cloning this repository and running the following command
+
+```
+./INSTALL.sh
+```
+
 ## How to run this
 
 The project contains both the host server code and a CLI to manage the configurations in one place.
