@@ -19,7 +19,7 @@ fn config_path() {
 }
 
 pub fn get_env_variables() {
-  case simplifile.verify_is_file(config_path()) {
+  case simplifile.is_file(config_path()) {
     Ok(True) -> read_env_variables()
     Ok(False) -> write_env_variables(EnvVars(default_host, default_token))
     Error(e) -> Error(simplifile.describe_error(e))
@@ -56,7 +56,7 @@ pub fn write_env_variables(env_vars: EnvVars) {
 
   case simplifile.create_directory(config_folder) {
     _ ->
-      case simplifile.verify_is_directory(config_folder) {
+      case simplifile.is_directory(config_folder) {
         Ok(True) ->
           case simplifile.write(config_path(), config) {
             Ok(_) -> Ok(env_vars)
