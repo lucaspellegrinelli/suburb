@@ -1,5 +1,6 @@
 import gleam/dynamic
 import gleam/list
+import gleam/pair
 import gleam/result
 import gleam/string
 import sqlight
@@ -27,28 +28,20 @@ pub fn list(
   let where_items =
     list.map(filters, fn(filter) {
       case filter {
-        Namespace(_) -> "namespace = ?"
-        Source(_) -> "source = ?"
-        Level(_) -> "level = ?"
-        FromTime(_) -> "created_at >= ?"
-        UntilTime(_) -> "created_at <= ?"
+        Namespace(v) -> #("namespace = ?", sqlight.text(v))
+        Source(v) -> #("source = ?", sqlight.text(v))
+        Level(v) -> #("level = ?", sqlight.text(v))
+        FromTime(v) -> #("created_at >= ?", sqlight.text(v))
+        UntilTime(v) -> #("created_at <= ?", sqlight.text(v))
       }
     })
 
-  let where_values =
-    list.map(filters, fn(filter) {
-      case filter {
-        Namespace(value) -> sqlight.text(value)
-        Source(value) -> sqlight.text(value)
-        Level(value) -> sqlight.text(value)
-        FromTime(value) -> sqlight.text(value)
-        UntilTime(value) -> sqlight.text(value)
-      }
-    })
+  let where_keys = list.map(where_items, pair.first)
+  let where_values = list.map(where_items, pair.second)
 
   let where_clause = case list.length(where_items) {
     0 -> ""
-    _ -> "WHERE " <> string.join(where_items, " AND ")
+    _ -> "WHERE " <> string.join(where_keys, " AND ")
   }
 
   let sql =
@@ -73,12 +66,10 @@ pub fn list(
       ),
     )
 
-  use result <- result.try(result.replace_error(
-    query,
-    ConnectorError("Failed to list logs."),
-  ))
-
-  Ok(result)
+  case query {
+    Ok(logs) -> Ok(logs)
+    _ -> Error(ConnectorError("Failed to list logs."))
+  }
 }
 
 pub fn add(

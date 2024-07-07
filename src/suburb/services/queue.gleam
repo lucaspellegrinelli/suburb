@@ -1,6 +1,7 @@
 import gleam/bool
 import gleam/dynamic
 import gleam/list
+import gleam/pair
 import gleam/result
 import gleam/string
 import sqlight
@@ -81,22 +82,17 @@ pub fn list(
   let where_items =
     list.map(filters, fn(filter) {
       case filter {
-        Namespace(_) -> "namespace = ?"
-        QueueName(_) -> "queue = ?"
+        Namespace(v) -> #("namespace = ?", sqlight.text(v))
+        QueueName(v) -> #("queue = ?", sqlight.text(v))
       }
     })
 
-  let where_values =
-    list.map(filters, fn(filter) {
-      case filter {
-        Namespace(value) -> sqlight.text(value)
-        QueueName(value) -> sqlight.text(value)
-      }
-    })
+  let where_keys = list.map(where_items, pair.first)
+  let where_values = list.map(where_items, pair.second)
 
   let where_clause = case list.length(where_items) {
     0 -> ""
-    _ -> "WHERE " <> string.join(where_items, " AND ")
+    _ -> "WHERE " <> string.join(where_keys, " AND ")
   }
 
   let sql =
@@ -116,12 +112,10 @@ pub fn list(
       ),
     )
 
-  use result <- result.try(result.replace_error(
-    query,
-    ConnectorError("Failed to list queues."),
-  ))
-
-  Ok(result)
+  case query {
+    Ok(result) -> Ok(result)
+    Error(_) -> Error(ConnectorError("Failed to list queues."))
+  }
 }
 
 fn queue_is_created(
@@ -137,14 +131,9 @@ fn queue_is_created(
       expecting: dynamic.element(0, dynamic.int),
     )
 
-  use result <- result.try(result.replace_error(
-    query,
-    ConnectorError("Failed to check if queue exists."),
-  ))
-
-  case list.first(result) {
-    Ok(1) -> Ok(True)
-    Ok(0) -> Ok(False)
+  case query {
+    Ok([1]) -> Ok(True)
+    Ok([0]) -> Ok(False)
     _ -> Error(ConnectorError("Failed to check if queue exists."))
   }
 }
@@ -168,12 +157,10 @@ pub fn length(
       expecting: dynamic.element(0, dynamic.int),
     )
 
-  use result <- result.try(result.replace_error(
-    query,
-    ConnectorError("Failed to get queue length."),
-  ))
-
-  Ok(result.unwrap(list.first(result), 0))
+  case query {
+    Ok([count]) -> Ok(count)
+    _ -> Error(ConnectorError("Failed to get queue length."))
+  }
 }
 
 pub fn push(
@@ -221,32 +208,23 @@ pub fn pop(
       expecting: dynamic.tuple2(dynamic.int, dynamic.string),
     )
 
-  use result <- result.try(result.replace_error(
-    get_query,
-    ConnectorError("Failed to pop value from queue."),
-  ))
+  case get_query {
+    Ok([]) -> Error(EmptyQueue("Queue " <> name <> " is empty."))
+    Ok([#(id, content)]) -> {
+      let update_query =
+        sqlight.query(
+          pop_update_query,
+          on: conn,
+          with: [sqlight.int(id)],
+          expecting: dynamic.element(0, dynamic.int),
+        )
 
-  use <- bool.guard(
-    list.is_empty(result),
-    Error(EmptyQueue("Queue " <> name <> " is empty.")),
-  )
-
-  use #(id, content) <- result.try(result.replace_error(
-    list.first(result),
-    ConnectorError("Failed to pop value from queue."),
-  ))
-
-  let update_query =
-    sqlight.query(
-      pop_update_query,
-      on: conn,
-      with: [sqlight.int(id)],
-      expecting: dynamic.element(0, dynamic.int),
-    )
-
-  case update_query {
-    Ok(_) -> Ok(content)
-    Error(_) -> Error(ConnectorError("Failed to pop value from queue."))
+      case update_query {
+        Ok(_) -> Ok(content)
+        _ -> Error(ConnectorError("Failed to pop value from queue."))
+      }
+    }
+    _ -> Error(ConnectorError("Failed to find value to pop from the queue."))
   }
 }
 
@@ -298,17 +276,11 @@ pub fn peek(
       expecting: dynamic.element(0, dynamic.string),
     )
 
-  use result <- result.try(result.replace_error(
-    query,
-    ConnectorError("Failed to peek value from queue."),
-  ))
-
-  use <- bool.guard(
-    list.is_empty(result),
-    Error(EmptyQueue("Queue " <> name <> " is empty.")),
-  )
-
-  Ok(result.unwrap(list.first(result), ""))
+  case query {
+    Ok([content]) -> Ok(content)
+    Ok([]) -> Error(EmptyQueue("Queue " <> name <> " is empty."))
+    _ -> Error(ConnectorError("Failed to peek value from queue."))
+  }
 }
 
 pub fn delete(

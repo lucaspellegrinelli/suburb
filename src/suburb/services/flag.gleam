@@ -1,7 +1,7 @@
 import gleam/bool
 import gleam/dynamic
-import gleam/io
 import gleam/list
+import gleam/pair
 import gleam/result
 import gleam/string
 import sqlight
@@ -35,22 +35,17 @@ pub fn list(
   let where_items =
     list.map(filters, fn(filter) {
       case filter {
-        Namespace(_) -> "namespace = ?"
-        Flag(_) -> "flag = ?"
+        Namespace(v) -> #("namespace = ?", sqlight.text(v))
+        Flag(v) -> #("flag = ?", sqlight.text(v))
       }
     })
 
-  let where_values =
-    list.map(filters, fn(filter) {
-      case filter {
-        Namespace(value) -> sqlight.text(value)
-        Flag(value) -> sqlight.text(value)
-      }
-    })
+  let where_keys = list.map(where_items, pair.first)
+  let where_values = list.map(where_items, pair.second)
 
   let where_clause = case list.length(where_items) {
     0 -> ""
-    _ -> "WHERE " <> string.join(where_items, " AND ")
+    _ -> "WHERE " <> string.join(where_keys, " AND ")
   }
 
   let sql =

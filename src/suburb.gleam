@@ -13,7 +13,7 @@ pub fn main() {
   |> glint.add(at: ["host"], do: host.host())
   |> glint.add(at: ["remote", "set"], do: remote.set())
   |> glint.add(at: ["remote", "get"], do: remote.get())
-  |> glint.add(at: ["queue", "create"], do: queue.create())
+  |> glint.add(at: ["queue", "new"], do: queue.create())
   |> glint.add(at: ["queue", "list"], do: queue.list())
   |> glint.add(at: ["queue", "length"], do: queue.length())
   |> glint.add(at: ["queue", "push"], do: queue.push())
