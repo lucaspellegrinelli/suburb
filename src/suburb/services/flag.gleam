@@ -1,5 +1,6 @@
 import gleam/bool
 import gleam/dynamic
+import gleam/io
 import gleam/list
 import gleam/result
 import gleam/string
@@ -62,19 +63,18 @@ pub fn list(
       sql,
       on: conn,
       with: where_values,
-      expecting: dynamic.tuple3(dynamic.string, dynamic.string, dynamic.string),
+      expecting: dynamic.decode3(
+        FeatureFlag,
+        dynamic.element(0, dynamic.string),
+        dynamic.element(1, dynamic.string),
+        dynamic.element(2, dynamic.string),
+      ),
     )
 
-  use result <- result.try(result.replace_error(
-    query,
-    ConnectorError("Failed to list feature flags."),
-  ))
-
-  Ok(
-    list.map(result, fn(row) {
-      FeatureFlag(namespace: row.0, flag: row.1, value: row.2)
-    }),
-  )
+  case query {
+    Ok(flags) -> Ok(flags)
+    Error(_) -> Error(ConnectorError("Failed to list feature flags."))
+  }
 }
 
 fn flag_is_created(
@@ -90,14 +90,9 @@ fn flag_is_created(
       expecting: dynamic.element(0, dynamic.int),
     )
 
-  use result <- result.try(result.replace_error(
-    query,
-    ConnectorError("Failed to check if feature flag exists."),
-  ))
-
-  case list.first(result) {
-    Ok(1) -> Ok(True)
-    Ok(0) -> Ok(False)
+  case query {
+    Ok([1]) -> Ok(True)
+    Ok([0]) -> Ok(False)
     _ -> Error(ConnectorError("Failed to check if feature flag exists."))
   }
 }
@@ -113,11 +108,16 @@ pub fn set(
       set_flag,
       on: conn,
       with: [sqlight.text(namespace), sqlight.text(name), sqlight.text(value)],
-      expecting: dynamic.tuple3(dynamic.string, dynamic.string, dynamic.string),
+      expecting: dynamic.decode3(
+        FeatureFlag,
+        dynamic.element(0, dynamic.string),
+        dynamic.element(1, dynamic.string),
+        dynamic.element(2, dynamic.string),
+      ),
     )
 
   case query {
-    Ok([r]) -> Ok(FeatureFlag(r.0, r.1, r.2))
+    Ok([f]) -> Ok(f)
     Ok([]) -> Ok(FeatureFlag(namespace, name, value))
     _ -> Error(ConnectorError("Failed to set feature flag."))
   }
@@ -139,16 +139,16 @@ pub fn get(
       get_flag,
       on: conn,
       with: [sqlight.text(name), sqlight.text(namespace)],
-      expecting: dynamic.tuple3(dynamic.string, dynamic.string, dynamic.string),
+      expecting: dynamic.decode3(
+        FeatureFlag,
+        dynamic.element(0, dynamic.string),
+        dynamic.element(1, dynamic.string),
+        dynamic.element(2, dynamic.string),
+      ),
     )
 
-  use result <- result.try(result.replace_error(
-    query,
-    ConnectorError("Failed to get feature flag."),
-  ))
-
-  case list.first(result) {
-    Ok(r) -> Ok(FeatureFlag(r.0, r.1, r.2))
+  case query {
+    Ok([f]) -> Ok(f)
     _ -> Error(ConnectorError("Failed to get feature flag."))
   }
 }

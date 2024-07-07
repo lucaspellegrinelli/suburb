@@ -109,7 +109,11 @@ pub fn list(
       sql,
       on: conn,
       with: where_values,
-      expecting: dynamic.tuple2(dynamic.string, dynamic.string),
+      expecting: dynamic.decode2(
+        Queue,
+        dynamic.element(0, dynamic.string),
+        dynamic.element(1, dynamic.string),
+      ),
     )
 
   use result <- result.try(result.replace_error(
@@ -117,7 +121,7 @@ pub fn list(
     ConnectorError("Failed to list queues."),
   ))
 
-  Ok(list.map(result, fn(row) { Queue(row.0, row.1) }))
+  Ok(result)
 }
 
 fn queue_is_created(
@@ -262,11 +266,15 @@ pub fn create(
       create_query,
       on: conn,
       with: [sqlight.text(name), sqlight.text(namespace)],
-      expecting: dynamic.tuple2(dynamic.string, dynamic.string),
+      expecting: dynamic.decode2(
+        Queue,
+        dynamic.element(0, dynamic.string),
+        dynamic.element(1, dynamic.string),
+      ),
     )
 
   case query {
-    Ok([r]) -> Ok(Queue(r.0, r.1))
+    Ok([q]) -> Ok(q)
     _ -> Error(ConnectorError("Failed to create queue."))
   }
 }

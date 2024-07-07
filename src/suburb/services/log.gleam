@@ -63,12 +63,13 @@ pub fn list(
       sql,
       on: conn,
       with: vars,
-      expecting: dynamic.tuple5(
-        dynamic.string,
-        dynamic.string,
-        dynamic.string,
-        dynamic.string,
-        dynamic.string,
+      expecting: dynamic.decode5(
+        Log,
+        dynamic.element(0, dynamic.string),
+        dynamic.element(1, dynamic.string),
+        dynamic.element(2, dynamic.string),
+        dynamic.element(3, dynamic.string),
+        dynamic.element(4, dynamic.string),
       ),
     )
 
@@ -77,17 +78,7 @@ pub fn list(
     ConnectorError("Failed to list logs."),
   ))
 
-  Ok(
-    list.map(result, fn(row) {
-      Log(
-        namespace: row.0,
-        source: row.1,
-        level: row.2,
-        message: row.3,
-        created_at: row.4,
-      )
-    }),
-  )
+  Ok(result)
 }
 
 pub fn add(
@@ -107,17 +98,18 @@ pub fn add(
         sqlight.text(level),
         sqlight.text(message),
       ],
-      expecting: dynamic.tuple5(
-        dynamic.string,
-        dynamic.string,
-        dynamic.string,
-        dynamic.string,
-        dynamic.string,
+      expecting: dynamic.decode5(
+        Log,
+        dynamic.element(0, dynamic.string),
+        dynamic.element(1, dynamic.string),
+        dynamic.element(2, dynamic.string),
+        dynamic.element(3, dynamic.string),
+        dynamic.element(4, dynamic.string),
       ),
     )
 
   case query {
-    Ok([r]) -> Ok(Log(r.0, r.1, r.2, r.3, r.4))
+    Ok([l]) -> Ok(l)
     _ -> Error(ConnectorError("Failed to add log."))
   }
 }
