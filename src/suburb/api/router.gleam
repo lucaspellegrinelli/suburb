@@ -1,11 +1,17 @@
 import gleam/http.{Delete, Get, Post}
 import suburb/api/routes/flag
 import suburb/api/routes/log
+import suburb/api/routes/pubsub
 import suburb/api/routes/queue
 import suburb/api/web.{type Context}
+import suburb/api/websocket.{type Broadcaster}
 import wisp.{type Request, type Response}
 
-pub fn handle_request(req: Request, ctx: Context) -> Response {
+pub fn handle_request(
+  req: Request,
+  ctx: Context,
+  broadcaster: Broadcaster,
+) -> Response {
   use req <- web.middleware(req, ctx)
 
   case wisp.path_segments(req), req.method {
@@ -25,6 +31,8 @@ pub fn handle_request(req: Request, ctx: Context) -> Response {
 
     ["logs"], Get -> log.list_route(req, ctx)
     ["logs", ns], Post -> log.add_route(req, ctx, ns)
+
+    ["pubsub", "publish"], Post -> pubsub.publish_route(req, broadcaster)
     _, _ -> wisp.not_found()
   }
 }

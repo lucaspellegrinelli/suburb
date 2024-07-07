@@ -1,10 +1,14 @@
 import envoy
 import gleam/erlang/process
+import gleam/http/request.{type Request}
+import gleam/http/response.{type Response}
 import gleam/int
 import gleam/io
-import mist
+import mist.{type Connection, type ResponseData}
 import suburb/api/router
+import suburb/api/routes/pubsub
 import suburb/api/web.{Context}
+import suburb/api/websocket
 import suburb/db.{db_connection}
 import wisp
 
@@ -46,14 +50,19 @@ pub fn serve() {
   wisp.configure_logger()
 
   use db_conn <- db_connection(database_path)
-
   let context = Context(conn: db_conn, api_secret: api_secret)
-  let handler = router.handle_request(_, context)
+  let assert Ok(broadcaster) = websocket.setup_websocket_broadcaster()
 
+  let handler = router.handle_request(_, context, broadcaster)
   let secret_key_base = wisp.random_string(64)
   let assert Ok(_) =
-    handler
-    |> wisp.mist_handler(secret_key_base)
+    fn(req: Request(Connection)) -> Response(ResponseData) {
+      case request.path_segments(req) {
+        ["pubsub", "listen"] ->
+          pubsub.setup_websocket(req, context, broadcaster)
+        _ -> wisp.mist_handler(handler, secret_key_base)(req)
+      }
+    }
     |> mist.new
     |> mist.port(port)
     |> mist.start_http
