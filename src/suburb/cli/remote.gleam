@@ -1,26 +1,41 @@
 import gleam/io
+import gleam/option.{None, Some}
+import gleam/result
 import glint
-import suburb/env.{EnvVars}
+import suburb/env
+
+fn host_flag() -> glint.Flag(String) {
+  glint.string_flag("host")
+  |> glint.flag_help("Remote server host")
+}
+
+fn token_flag() -> glint.Flag(String) {
+  glint.string_flag("token")
+  |> glint.flag_help("Remote server API key")
+}
+
+pub fn set() -> glint.Command(Nil) {
+  use <- glint.command_help("Sets the remote server host and API key")
+  use host <- glint.flag(host_flag())
+  use token <- glint.flag(token_flag())
+  use _, _, flags <- glint.command()
+
+  let host = result.unwrap(result.map(host(flags), Some), None)
+  let token = result.unwrap(result.map(token(flags), Some), None)
+
+  case env.write_env_variables(host, token) {
+    Ok(vars) -> {
+      io.println("Remote HOST:\t" <> vars.host)
+      io.println("Remote TOKEN:\t" <> vars.token)
+    }
+    Error(e) -> io.println("Failed to set remote host: " <> e)
+  }
+}
 
 fn show_api_key_flag() -> glint.Flag(Bool) {
   glint.bool_flag("key")
   |> glint.flag_default(False)
   |> glint.flag_help("Shows the API Key")
-}
-
-pub fn set() -> glint.Command(Nil) {
-  use <- glint.command_help("Sets the remote server host and API key")
-  use host <- glint.named_arg("remote host")
-  use token <- glint.named_arg("remote token")
-  use named, _, _ <- glint.command()
-
-  case env.write_env_variables(EnvVars(host(named), token(named))) {
-    Ok(_) -> {
-      io.println("Remote HOST:\t" <> host(named))
-      io.println("Remote TOKEN:\t" <> token(named))
-    }
-    Error(e) -> io.println("Failed to set remote host: " <> e)
-  }
 }
 
 pub fn get() -> glint.Command(Nil) {

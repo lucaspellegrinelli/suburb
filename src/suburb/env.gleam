@@ -1,17 +1,19 @@
 import envoy
 import filepath
 import gleam/dynamic
+import gleam/io
 import gleam/json
+import gleam/option.{type Option, Some}
 import simplifile
 
 const config_file = "config"
 
+const default_host = "http://localhost:8080"
+
+const default_token = "yoursecrettoken"
+
 pub type EnvVars {
   EnvVars(host: String, token: String)
-}
-
-fn default_env_vars() {
-  EnvVars("http://localhost:8080", "yoursecrettoken")
 }
 
 fn config_folder() {
@@ -28,7 +30,7 @@ fn config_path() {
 pub fn get_env_variables() {
   case simplifile.is_file(config_path()) {
     Ok(True) -> read_env_variables()
-    Ok(False) -> write_env_variables(default_env_vars())
+    Ok(False) -> write_env_variables(Some(default_host), Some(default_token))
     Error(e) -> Error(simplifile.describe_error(e))
   }
 }
@@ -53,11 +55,24 @@ fn read_env_variables() {
   }
 }
 
-pub fn write_env_variables(env_vars: EnvVars) {
-  let config =
+pub fn write_env_variables(host: Option(String), token: Option(String)) {
+  let config = case read_env_variables() {
+    Ok(ev) -> {
+      let host = option.unwrap(host, ev.host)
+      let token = option.unwrap(token, ev.token)
+      EnvVars(host, token)
+    }
+    _ -> {
+      let host = option.unwrap(host, default_host)
+      let token = option.unwrap(token, default_token)
+      EnvVars(host, token)
+    }
+  }
+
+  let json_config =
     json.object([
-      #("host", json.string(env_vars.host)),
-      #("token", json.string(env_vars.token)),
+      #("host", json.string(config.host)),
+      #("token", json.string(config.token)),
     ])
     |> json.to_string
 
@@ -65,8 +80,8 @@ pub fn write_env_variables(env_vars: EnvVars) {
     _ ->
       case simplifile.is_directory(config_folder()) {
         Ok(True) ->
-          case simplifile.write(config_path(), config) {
-            Ok(_) -> Ok(env_vars)
+          case simplifile.write(config_path(), json_config) {
+            Ok(_) -> Ok(config)
             Error(e) -> Error(simplifile.describe_error(e))
           }
         Ok(False) -> Error("Could not create config folder")
