@@ -1,27 +1,34 @@
+import envoy
+import filepath
 import gleam/dynamic
 import gleam/json
 import simplifile
 
-const config_folder = "/Users/lucasmachado/.suburb"
-
 const config_file = "config"
-
-const default_host = "http://localhost:8080"
-
-const default_token = "yoursecrettoken"
 
 pub type EnvVars {
   EnvVars(host: String, token: String)
 }
 
+fn default_env_vars() {
+  EnvVars("http://localhost:8080", "yoursecrettoken")
+}
+
+fn config_folder() {
+  case envoy.get("HOME") {
+    Ok(home) -> filepath.join(home, ".suburb")
+    Error(_) -> panic as "Could not get home directory from $HOME"
+  }
+}
+
 fn config_path() {
-  config_folder <> "/" <> config_file
+  filepath.join(config_folder(), config_file)
 }
 
 pub fn get_env_variables() {
   case simplifile.is_file(config_path()) {
     Ok(True) -> read_env_variables()
-    Ok(False) -> write_env_variables(EnvVars(default_host, default_token))
+    Ok(False) -> write_env_variables(default_env_vars())
     Error(e) -> Error(simplifile.describe_error(e))
   }
 }
@@ -54,9 +61,9 @@ pub fn write_env_variables(env_vars: EnvVars) {
     ])
     |> json.to_string
 
-  case simplifile.create_directory(config_folder) {
+  case simplifile.create_directory(config_folder()) {
     _ ->
-      case simplifile.is_directory(config_folder) {
+      case simplifile.is_directory(config_folder()) {
         Ok(True) ->
           case simplifile.write(config_path(), config) {
             Ok(_) -> Ok(env_vars)
