@@ -3,7 +3,7 @@ pub type Queue {
 }
 
 pub type FeatureFlag {
-  FeatureFlag(namespace: String, flag: String, value: String)
+  FeatureFlag(namespace: String, flag: String, value: Bool)
 }
 
 pub type Log {

@@ -5,6 +5,7 @@ import gleam/pair
 import gleam/result
 import gleam/string
 import sqlight
+import suburb/coders/flag.{str_to_bool}
 import suburb/types.{
   type FeatureFlag, type ServiceError, ConnectorError, FeatureFlag,
   ResourceDoesNotExist,
@@ -62,7 +63,7 @@ pub fn list(
         FeatureFlag,
         dynamic.element(0, dynamic.string),
         dynamic.element(1, dynamic.string),
-        dynamic.element(2, dynamic.string),
+        dynamic.element(2, str_to_bool),
       ),
     )
 
@@ -96,18 +97,22 @@ pub fn set(
   conn: sqlight.Connection,
   namespace: String,
   name: String,
-  value: String,
+  value: Bool,
 ) -> Result(FeatureFlag, ServiceError) {
   let query =
     sqlight.query(
       set_flag,
       on: conn,
-      with: [sqlight.text(namespace), sqlight.text(name), sqlight.text(value)],
+      with: [
+        sqlight.text(namespace),
+        sqlight.text(name),
+        sqlight.text(bool.to_string(value)),
+      ],
       expecting: dynamic.decode3(
         FeatureFlag,
         dynamic.element(0, dynamic.string),
         dynamic.element(1, dynamic.string),
-        dynamic.element(2, dynamic.string),
+        dynamic.element(2, str_to_bool),
       ),
     )
 
@@ -138,7 +143,7 @@ pub fn get(
         FeatureFlag,
         dynamic.element(0, dynamic.string),
         dynamic.element(1, dynamic.string),
-        dynamic.element(2, dynamic.string),
+        dynamic.element(2, str_to_bool),
       ),
     )
 

@@ -71,11 +71,12 @@ pub fn make_request(
   case httpc.send(req) {
     Ok(resp) -> {
       case resp.status {
-        200 ->
+        200 -> {
           case decoder(resp.body) {
             Ok(v) -> Ok(v)
-            Error(_) -> Error("Failed to decode response")
+            Error(error) -> Error(json_error_to_str(error))
           }
+        }
         _ -> {
           let decoded =
             resp.body

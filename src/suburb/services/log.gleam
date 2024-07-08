@@ -1,7 +1,6 @@
 import gleam/dynamic
 import gleam/list
 import gleam/pair
-import gleam/result
 import gleam/string
 import sqlight
 import suburb/types.{type Log, type ServiceError, ConnectorError, Log}

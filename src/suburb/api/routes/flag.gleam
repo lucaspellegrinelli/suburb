@@ -28,7 +28,7 @@ pub fn list_route(req: Request, ctx: Context) -> Response {
         json.object([
           #("namespace", json.string(log.namespace)),
           #("flag", json.string(log.flag)),
-          #("value", json.string(log.value)),
+          #("value", json.bool(log.value)),
         ])
       })
       |> construct_response("success", 200)
@@ -58,7 +58,7 @@ pub fn set_route(
 ) -> Response {
   use <- wisp.require_method(req, http.Post)
   use json <- wisp.require_json(req)
-  let value = json |> dynamic.field("value", dynamic.string)
+  let value = json |> dynamic.field("value", dynamic.bool)
 
   case value {
     Ok(value) ->

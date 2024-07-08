@@ -1,3 +1,4 @@
+import gleam/bool
 import gleam/dynamic
 import gleam/http
 import gleam/io
@@ -47,7 +48,8 @@ pub fn list() -> glint.Command(Nil) {
   case make_request(url, http.Get, None, decoder) {
     Error(e) -> io.println(e)
     Ok(flags) -> {
-      let values = list.map(flags, fn(l) { [l.namespace, l.flag, l.value] })
+      let values =
+        list.map(flags, fn(l) { [l.namespace, l.flag, bool.to_string(l.value)] })
       let headers = ["NAMESPACE", "FLAG", "VALUE"]
       let col_sizes = [16, 16, 999]
       print_table(headers, values, col_sizes)
@@ -55,11 +57,10 @@ pub fn list() -> glint.Command(Nil) {
   }
 }
 
-pub fn set() -> glint.Command(Nil) {
+pub fn set(value: Bool) -> glint.Command(Nil) {
   use <- glint.command_help("Set a value for a feature flag")
   use namespace <- glint.named_arg("namespace")
   use name <- glint.named_arg("name")
-  use value <- glint.named_arg("value")
   use named, _, _ <- glint.command()
 
   let url = "/flags/" <> namespace(named) <> "/" <> name(named)
@@ -71,13 +72,13 @@ pub fn set() -> glint.Command(Nil) {
     json.object([
       #("namespace", json.string(namespace(named))),
       #("flag", json.string(name(named))),
-      #("value", json.string(value(named))),
+      #("value", json.bool(value)),
     ])
 
   case make_request(url, http.Post, Some(body), decoder) {
     Error(e) -> io.println(e)
-    Ok(flag) -> {
-      let values = [[flag.namespace, flag.flag, flag.value]]
+    Ok(f) -> {
+      let values = [[f.namespace, f.flag, bool.to_string(f.value)]]
       let headers = ["NAMESPACE", "FLAG", "VALUE"]
       let col_sizes = [16, 16, 999]
       print_table(headers, values, col_sizes)
@@ -94,12 +95,12 @@ pub fn get() -> glint.Command(Nil) {
   let url = "/flags/" <> namespace(named) <> "/" <> name(named)
   let decoder = fn(body: String) {
     body
-    |> json.decode(dynamic.field("response", of: dynamic.string))
+    |> json.decode(dynamic.field("response", of: flag_coder.decoder))
   }
 
   case make_request(url, http.Get, None, decoder) {
+    Ok(r) -> io.println(bool.to_string(r.value))
     Error(e) -> io.println(e)
-    Ok(response) -> io.println(response)
   }
 }
 
