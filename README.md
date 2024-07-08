@@ -3,7 +3,7 @@
   <h1 align="center">Suburb</h1>
 
   <p align="center">
-    A small utility service that provides <strong>self-hostable logging, feature flags and queues</strong> via HTTP
+    A small utility service that provides <strong>self-hostable logging, feature flags, queues and pub/sub</strong> via HTTP
   </p>
 </p>
 
@@ -24,14 +24,14 @@ The project contains both the host server code and a CLI to manage the configura
 Given that you already have a suburb host running, you can run the CLI tool to manage your configurations. Firstly set the remote host configurations
 
 ```
-suburb remote set https://your-remote.com/ your_api_secret
-suburb remote get
+suburb remote set --host=https://your-remote.com/ --token=your_api_secret
+suburb remote get --key
 ```
 
 Than you can interact with the features like
 
 ```
-suburb log list
+suburb log list --namespace="some_project"
 
 suburb queue create "some_project" "queue_name"
 suburb queue pop "some_project" "queue_name"
