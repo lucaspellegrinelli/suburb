@@ -41,15 +41,19 @@ fn broadcaster_handle_message(
       io.debug(#(subject, channel))
       io.debug("DESTINATIONS (PRE)")
       io.debug(destinations)
+      destinations
+      |> list.filter(fn(d) {
+        io.debug("CHECKING IF SHOULD UNREGISTER")
+        io.debug(#("ITEM IN LIST", d))
+        io.debug(#("ITEM TO UNREGISTER", #(subject, channel)))
+        io.debug(#("CHECK", d.0 != subject && d.1 != channel))
+        d.0 != subject && d.1 != channel
+      })
+      io.debug("DESTINATIONS (POST)")
+      io.debug(destinations)
       actor.continue(
         destinations
-        |> list.filter(fn(d) {
-          io.debug("CHECKING IF SHOULD UNREGISTER")
-          io.debug(#("ITEM IN LIST", d))
-          io.debug(#("ITEM TO UNREGISTER", #(subject, channel)))
-          io.debug(#("CHECK", d.0 != subject && d.1 != channel))
-          d.0 != subject && d.1 != channel
-        }),
+        |> list.filter(fn(d) { d.0 != subject && d.1 != channel }),
       )
     }
     Broadcast(inner, channel) -> {
