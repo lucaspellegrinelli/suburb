@@ -9,8 +9,8 @@ import mist.{type Connection}
 import suburb/api/utils.{construct_response}
 import suburb/api/web.{type Context}
 import suburb/api/websocket.{
-  type Broadcaster, type PubSubMessage, Broadcast, Register, Send,
-  Unregister, authenticate,
+  type Broadcaster, type PubSubMessage, Broadcast, Register, Send, Unregister,
+  authenticate,
 }
 import wisp
 
