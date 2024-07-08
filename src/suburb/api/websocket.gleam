@@ -4,6 +4,7 @@ import gleam/dict
 import gleam/erlang/process.{type Subject}
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
+import gleam/io
 import gleam/list
 import gleam/otp/actor
 import mist.{type Connection, type ResponseData}
@@ -36,12 +37,18 @@ fn broadcaster_handle_message(
         |> list.filter(fn(d) { d.0 != subject && d.1 != channel }),
       )
     Broadcast(inner, channel) -> {
+      io.debug("RECIEVED BROADCAST")
+      io.debug(inner)
+      io.debug(channel)
       destinations
       |> list.filter(fn(d) { d.1 == channel })
       |> list.each(fn(dest) { process.send(dest.0, inner) })
       actor.continue(destinations)
     }
     Ping(subject, message) -> {
+      io.debug("RECIEVED PING")
+      io.debug(subject)
+      io.debug(message)
       process.send(subject, message)
       actor.continue(destinations)
     }
