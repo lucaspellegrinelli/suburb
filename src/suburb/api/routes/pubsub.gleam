@@ -40,6 +40,10 @@ pub fn setup_websocket(
     },
     handler: fn(state, conn, message) {
       case message {
+        mist.Text("ping") -> {
+          let assert Ok(_) = mist.send_text_frame(conn, "pong")
+          actor.continue(state)
+        }
         mist.Text(_) | mist.Binary(_) -> {
           actor.continue(state)
         }
