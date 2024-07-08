@@ -4,7 +4,6 @@ import gleam/dict
 import gleam/erlang/process.{type Subject}
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
-import gleam/io
 import gleam/list
 import gleam/otp/actor
 import mist.{type Connection, type ResponseData}
@@ -30,52 +29,22 @@ fn broadcaster_handle_message(
 ) {
   case message {
     Register(subject, channel) -> {
-      io.debug("RECIEVED REGISTER")
-      io.debug(#(subject, channel))
-      io.debug("DESTINATIONS (PRE)")
-      io.debug(destinations)
       actor.continue([#(subject, channel), ..destinations])
     }
     Unregister(subject, channel) -> {
-      io.debug("RECIEVED UNREGISTER")
-      io.debug(#(subject, channel))
-      io.debug("DESTINATIONS (PRE)")
-      io.debug(destinations)
-      destinations
-      |> list.filter(fn(d) {
-        io.debug("CHECKING IF SHOULD UNREGISTER")
-        io.debug(#("ITEM IN LIST", d))
-        io.debug(#("ITEM TO UNREGISTER", #(subject, channel)))
-        io.debug(#("CHECK", d.0 != subject && d.1 != channel))
-        d.0 != subject && d.1 != channel
-      })
-      io.debug("DESTINATIONS (POST)")
-      io.debug(destinations)
       actor.continue(
         destinations
-        |> list.filter(fn(d) { d.0 != subject && d.1 != channel }),
+        |> list.filter(fn(d) { d.0 != subject || d.1 != channel }),
       )
     }
     Broadcast(inner, channel) -> {
-      io.debug("RECIEVED BROADCAST")
-      io.debug(#(inner, channel))
-      io.debug("DESTINATIONS")
-      io.debug(destinations)
       destinations
       |> list.filter(fn(d) { d.1 == channel })
-      |> list.each(fn(dest) {
-        io.debug("SENDING TO DEST")
-        io.debug(dest)
-        process.send(dest.0, inner)
-      })
+      |> list.each(fn(dest) { process.send(dest.0, inner) })
       actor.continue(destinations)
     }
     Ping(subject, message) -> {
-      io.debug("RECIEVED PING")
-      io.debug(#(subject, message))
       process.send(subject, message)
-      io.debug("DESTINATIONS")
-      io.debug(destinations)
       actor.continue(destinations)
     }
   }
