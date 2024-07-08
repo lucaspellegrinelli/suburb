@@ -29,13 +29,21 @@ fn broadcaster_handle_message(
   destinations: List(#(Subject(a), String)),
 ) {
   case message {
-    Register(subject, channel) ->
+    Register(subject, channel) -> {
+      io.debug("RECIEVED REGISTER")
+      io.debug(subject)
+      io.debug(channel)
       actor.continue([#(subject, channel), ..destinations])
-    Unregister(subject, channel) ->
+    }
+    Unregister(subject, channel) -> {
+      io.debug("RECIEVED UNREGISTER")
+      io.debug(subject)
+      io.debug(channel)
       actor.continue(
         destinations
         |> list.filter(fn(d) { d.0 != subject && d.1 != channel }),
       )
+    }
     Broadcast(inner, channel) -> {
       io.debug("RECIEVED BROADCAST")
       io.debug(inner)
