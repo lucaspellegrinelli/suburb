@@ -31,27 +31,29 @@ fn broadcaster_handle_message(
   case message {
     Register(subject, channel) -> {
       io.debug("RECIEVED REGISTER")
-      io.debug(subject)
-      io.debug(channel)
+      io.debug(#(subject, channel))
       io.debug("DESTINATIONS (PRE)")
       io.debug(destinations)
       actor.continue([#(subject, channel), ..destinations])
     }
     Unregister(subject, channel) -> {
       io.debug("RECIEVED UNREGISTER")
-      io.debug(subject)
-      io.debug(channel)
+      io.debug(#(subject, channel))
       io.debug("DESTINATIONS (PRE)")
       io.debug(destinations)
       actor.continue(
         destinations
-        |> list.filter(fn(d) { d.0 != subject && d.1 != channel }),
+        |> list.filter(fn(d) {
+          io.debug("CHECKING IF SHOULD UNREGISTER")
+          io.debug(#("ITEM IN LIST", d))
+          io.debug(#("ITEM TO UNREGISTER", #(subject, channel)))
+          d.0 != subject && d.1 != channel
+        }),
       )
     }
     Broadcast(inner, channel) -> {
       io.debug("RECIEVED BROADCAST")
-      io.debug(inner)
-      io.debug(channel)
+      io.debug(#(inner, channel))
       io.debug("DESTINATIONS")
       io.debug(destinations)
       destinations
@@ -65,8 +67,7 @@ fn broadcaster_handle_message(
     }
     Ping(subject, message) -> {
       io.debug("RECIEVED PING")
-      io.debug(subject)
-      io.debug(message)
+      io.debug(#(subject, message))
       process.send(subject, message)
       io.debug("DESTINATIONS")
       io.debug(destinations)
