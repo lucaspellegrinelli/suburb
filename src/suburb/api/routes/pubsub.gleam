@@ -9,7 +9,7 @@ import mist.{type Connection}
 import suburb/api/utils.{construct_response}
 import suburb/api/web.{type Context}
 import suburb/api/websocket.{
-  type Broadcaster, type PubSubMessage, Broadcast, Ping, Register, Send,
+  type Broadcaster, type PubSubMessage, Broadcast, Register, Send,
   Unregister, authenticate,
 }
 import wisp
@@ -38,10 +38,10 @@ pub fn setup_websocket(
     on_close: fn(state) {
       process.send(broadcaster, Unregister(state.subject, channel))
     },
-    handler: fn(state: SocketState, conn, message) {
+    handler: fn(state, conn, message) {
       case message {
         mist.Text("ping") -> {
-          process.send(broadcaster, Ping(state.subject, Send("pong")))
+          let assert Ok(_) = mist.send_text_frame(conn, "pong")
           actor.continue(state)
         }
         mist.Text(_) | mist.Binary(_) -> {
