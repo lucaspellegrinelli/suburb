@@ -42,7 +42,11 @@ fn broadcaster_handle_message(
       io.debug(channel)
       destinations
       |> list.filter(fn(d) { d.1 == channel })
-      |> list.each(fn(dest) { process.send(dest.0, inner) })
+      |> list.each(fn(dest) {
+        io.debug("SENDING TO DEST")
+        io.debug(dest)
+        process.send(dest.0, inner)
+      })
       actor.continue(destinations)
     }
     Ping(subject, message) -> {
