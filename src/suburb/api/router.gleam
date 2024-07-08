@@ -32,7 +32,8 @@ pub fn handle_request(
     ["logs"], Get -> log.list_route(req, ctx)
     ["logs", ns], Post -> log.add_route(req, ctx, ns)
 
-    ["pubsub", "publish"], Post -> pubsub.publish_route(req, broadcaster)
+    ["pubsub", channel, "publish"], Post ->
+      pubsub.publish_route(req, channel, broadcaster)
     _, _ -> wisp.not_found()
   }
 }

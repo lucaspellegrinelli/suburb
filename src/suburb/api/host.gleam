@@ -58,8 +58,8 @@ pub fn serve() {
   let assert Ok(_) =
     fn(req: Request(Connection)) -> Response(ResponseData) {
       case request.path_segments(req) {
-        ["pubsub", "listen"] ->
-          pubsub.setup_websocket(req, context, broadcaster)
+        ["pubsub", channel, "listen"] ->
+          pubsub.setup_websocket(req, context, channel, broadcaster)
         _ -> wisp.mist_handler(handler, secret_key_base)(req)
       }
     }

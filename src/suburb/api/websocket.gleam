@@ -10,13 +10,13 @@ import mist.{type Connection, type ResponseData}
 import suburb/api/web.{type Context}
 
 pub type BroadcasterMessage(a) {
-  Register(subject: Subject(a))
-  Unregister(subject: Subject(a))
-  Broadcast(msg: a)
+  Register(subject: Subject(a), channel: String)
+  Unregister(subject: Subject(a), channel: String)
+  Broadcast(message: a, channel: String)
 }
 
 pub type PubSubMessage {
-  Send(String)
+  Send(message: String)
 }
 
 pub type Broadcaster =
@@ -24,18 +24,19 @@ pub type Broadcaster =
 
 fn broadcaster_handle_message(
   message: BroadcasterMessage(a),
-  destinations: List(Subject(a)),
+  destinations: List(#(Subject(a), String)),
 ) {
   case message {
-    Register(subject) -> actor.continue([subject, ..destinations])
-    Unregister(subject) ->
+    Register(subject, channel) -> actor.continue([#(subject, channel), ..destinations])
+    Unregister(subject, channel) ->
       actor.continue(
         destinations
-        |> list.filter(fn(d) { d != subject }),
+        |> list.filter(fn(d) { d.0 != subject && d.1 != channel }),
       )
-    Broadcast(inner) -> {
+    Broadcast(inner, channel) -> {
       destinations
-      |> list.each(fn(dest) { process.send(dest, inner) })
+      |> list.filter(fn(d) { d.1 == channel })
+      |> list.each(fn(dest) { process.send(dest.0, inner) })
       actor.continue(destinations)
     }
   }
