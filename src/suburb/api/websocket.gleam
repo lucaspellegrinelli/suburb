@@ -27,7 +27,8 @@ fn broadcaster_handle_message(
   destinations: List(#(Subject(a), String)),
 ) {
   case message {
-    Register(subject, channel) -> actor.continue([#(subject, channel), ..destinations])
+    Register(subject, channel) ->
+      actor.continue([#(subject, channel), ..destinations])
     Unregister(subject, channel) ->
       actor.continue(
         destinations
@@ -51,16 +52,16 @@ pub fn authenticate(
   ctx: Context,
   cb: fn() -> Response(ResponseData),
 ) {
-  let not_found =
-    response.new(404)
+  let unauthorized =
+    response.new(401)
     |> response.set_body(mist.Bytes(bytes_builder.new()))
 
   let header_list = dict.from_list(req.headers)
   case dict.get(header_list, "authorization") {
     Ok(token) -> {
-      use <- bool.guard(token != ctx.api_secret, not_found)
+      use <- bool.guard(token != ctx.api_secret, unauthorized)
       cb()
     }
-    _ -> not_found
+    _ -> unauthorized
   }
 }
