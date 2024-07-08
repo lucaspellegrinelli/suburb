@@ -13,6 +13,7 @@ pub type BroadcasterMessage(a) {
   Register(subject: Subject(a), channel: String)
   Unregister(subject: Subject(a), channel: String)
   Broadcast(message: a, channel: String)
+  Ping(subject: Subject(a), message: a)
 }
 
 pub type PubSubMessage {
@@ -27,17 +28,23 @@ fn broadcaster_handle_message(
   destinations: List(#(Subject(a), String)),
 ) {
   case message {
-    Register(subject, channel) ->
+    Register(subject, channel) -> {
       actor.continue([#(subject, channel), ..destinations])
-    Unregister(subject, channel) ->
+    }
+    Unregister(subject, channel) -> {
       actor.continue(
         destinations
-        |> list.filter(fn(d) { d.0 != subject && d.1 != channel }),
+        |> list.filter(fn(d) { d.0 != subject || d.1 != channel }),
       )
+    }
     Broadcast(inner, channel) -> {
       destinations
       |> list.filter(fn(d) { d.1 == channel })
       |> list.each(fn(dest) { process.send(dest.0, inner) })
+      actor.continue(destinations)
+    }
+    Ping(subject, message) -> {
+      process.send(subject, message)
       actor.continue(destinations)
     }
   }
