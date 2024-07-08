@@ -33,12 +33,16 @@ fn broadcaster_handle_message(
       io.debug("RECIEVED REGISTER")
       io.debug(subject)
       io.debug(channel)
+      io.debug("DESTINATIONS (PRE)")
+      io.debug(destinations)
       actor.continue([#(subject, channel), ..destinations])
     }
     Unregister(subject, channel) -> {
       io.debug("RECIEVED UNREGISTER")
       io.debug(subject)
       io.debug(channel)
+      io.debug("DESTINATIONS (PRE)")
+      io.debug(destinations)
       actor.continue(
         destinations
         |> list.filter(fn(d) { d.0 != subject && d.1 != channel }),
@@ -48,6 +52,8 @@ fn broadcaster_handle_message(
       io.debug("RECIEVED BROADCAST")
       io.debug(inner)
       io.debug(channel)
+      io.debug("DESTINATIONS")
+      io.debug(destinations)
       destinations
       |> list.filter(fn(d) { d.1 == channel })
       |> list.each(fn(dest) {
@@ -62,6 +68,8 @@ fn broadcaster_handle_message(
       io.debug(subject)
       io.debug(message)
       process.send(subject, message)
+      io.debug("DESTINATIONS")
+      io.debug(destinations)
       actor.continue(destinations)
     }
   }
