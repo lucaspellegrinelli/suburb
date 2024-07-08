@@ -47,6 +47,7 @@ fn broadcaster_handle_message(
           io.debug("CHECKING IF SHOULD UNREGISTER")
           io.debug(#("ITEM IN LIST", d))
           io.debug(#("ITEM TO UNREGISTER", #(subject, channel)))
+          io.debug(#("CHECK", d.0 != subject && d.1 != channel))
           d.0 != subject && d.1 != channel
         }),
       )
