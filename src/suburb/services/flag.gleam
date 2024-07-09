@@ -10,6 +10,7 @@ import suburb/types.{
   type FeatureFlag, type ServiceError, ConnectorError, FeatureFlag,
   ResourceDoesNotExist,
 }
+import suburb/services/namespace.{namespace_is_created}
 
 pub type FlagFilters {
   Namespace(String)

@@ -1,6 +1,7 @@
 import gleam/http.{Delete, Get, Post}
 import suburb/api/routes/flag
 import suburb/api/routes/log
+import suburb/api/routes/namespace
 import suburb/api/routes/pubsub
 import suburb/api/routes/queue
 import suburb/api/web.{type Context}
@@ -15,6 +16,10 @@ pub fn handle_request(
   use req <- web.middleware(req, ctx)
 
   case wisp.path_segments(req), req.method {
+    ["namespaces"], Get -> namespace.list_route(req, ctx)
+    ["namespaces"], Post -> namespace.add_route(req, ctx)
+    ["namespaces", ns], Delete -> namespace.delete_route(req, ctx, ns)
+
     ["queues"], Get -> queue.list_route(req, ctx)
     ["queues"], Post -> queue.create_route(req, ctx)
     ["queues", ns, name], Post -> queue.push_route(req, ctx, ns, name)

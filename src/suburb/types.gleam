@@ -1,3 +1,7 @@
+pub type Namespace {
+  Namespace(name: String)
+}
+
 pub type Queue {
   Queue(namespace: String, queue: String)
 }
