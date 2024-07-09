@@ -24,14 +24,11 @@ pub fn list() -> glint.Command(Nil) {
   use _, _, flags <- glint.command()
 
   let params: List(String) =
-    [
-      create_flag_item("namespace", Ok(envvars.namespace)),
-      create_flag_item("queue", queue(flags)),
-    ]
+    [create_flag_item("queue", queue(flags))]
     |> list.filter(fn(x) { !string.is_empty(x) })
 
   let query_params = "?" <> string.join(params, "&")
-  let url = "/queues" <> query_params
+  let url = "/queues/" <> envvars.namespace <> query_params
   let decoder = fn(body: String) {
     body
     |> json.decode(dynamic.field(
@@ -57,16 +54,12 @@ pub fn create() -> glint.Command(Nil) {
   use name <- glint.named_arg("name")
   use named, _, _ <- glint.command()
 
-  let url = "/queues"
+  let url = "/queues/" <> envvars.namespace
   let decoder = fn(body: String) {
     body
     |> json.decode(dynamic.field("response", of: queue_coder.decoder))
   }
-  let body =
-    json.object([
-      #("namespace", json.string(envvars.namespace)),
-      #("queue", json.string(name(named))),
-    ])
+  let body = json.object([#("queue", json.string(name(named)))])
 
   case make_request(url, http.Post, Some(body), decoder) {
     Error(e) -> io.println(e)

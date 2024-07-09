@@ -1,6 +1,8 @@
 import gleam/string
 import sqlight
 
+const pragma_foreign_keys_sql = "PRAGMA foreign_keys = ON;"
+
 const create_namespaces_sql = "
 CREATE TABLE IF NOT EXISTS namespaces (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,7 +19,7 @@ CREATE TABLE IF NOT EXISTS queues (
   queue TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(queue, namespace_id),
-  FOREIGN KEY(namespace_id) REFERENCES namespaces(id)
+  FOREIGN KEY(namespace_id) REFERENCES namespaces(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_queues_queue_namespace_id ON queues (queue, namespace_id);
 "
@@ -29,7 +31,7 @@ CREATE TABLE IF NOT EXISTS queued_values (
   content TEXT,
   consumed_at TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY(queue_id) REFERENCES queues(id)
+  FOREIGN KEY(queue_id) REFERENCES queues(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_queued_values_queue_id_consumed_at ON queued_values (queue_id, consumed_at);
 "
@@ -42,7 +44,7 @@ CREATE TABLE IF NOT EXISTS feature_flags (
   value TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(flag, namespace_id),
-  FOREIGN KEY(namespace_id) REFERENCES namespaces(id)
+  FOREIGN KEY(namespace_id) REFERENCES namespaces(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_feature_flags_flag_namespace_id ON feature_flags (flag, namespace_id);
 "
@@ -55,7 +57,7 @@ CREATE TABLE IF NOT EXISTS logs (
   level TEXT,
   message TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY(namespace_id) REFERENCES namespaces(id)
+  FOREIGN KEY(namespace_id) REFERENCES namespaces(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_logs_namespace_id_created_at ON logs (namespace_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_logs_source_created_at ON logs (source, created_at);
@@ -67,6 +69,7 @@ pub fn db_connection(database_path: String, f: fn(sqlight.Connection) -> a) {
   use conn <- sqlight.with_connection(database_path)
   let sql =
     string.concat([
+      pragma_foreign_keys_sql,
       create_queue_sql,
       create_queued_values_sql,
       create_feature_flag_sql,
