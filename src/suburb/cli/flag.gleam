@@ -25,13 +25,12 @@ pub fn list() -> glint.Command(Nil) {
 
   let params: List(String) =
     [
-      create_flag_item("namespace", Ok(envvars.namespace)),
       create_flag_item("flag", flag(flags)),
     ]
     |> list.filter(fn(x) { !string.is_empty(x) })
 
   let query_params = "?" <> string.join(params, "&")
-  let url = "/flags" <> query_params
+  let url = "/flags/" <> envvars.namespace <> query_params
 
   let decoder = fn(body: String) {
     body
