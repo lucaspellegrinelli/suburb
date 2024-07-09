@@ -26,7 +26,8 @@ pub fn list(conn: sqlight.Connection) -> Result(List(Namespace), ServiceError) {
 
   case query {
     Ok(namespaces) -> Ok(namespaces)
-    _ -> Error(ConnectorError("Failed to list namespaces."))
+    Error(sqlight.SqlightError(_, m, _)) ->
+      Error(ConnectorError("Failed to list namespaces: " <> m))
   }
 }
 
@@ -45,6 +46,8 @@ pub fn namespace_is_created(
   case query {
     Ok([1]) -> Ok(True)
     Ok([0]) -> Ok(False)
+    Error(sqlight.SqlightError(_, m, _)) ->
+      Error(ConnectorError("Failed to check if namespace exists: " <> m))
     _ -> Error(ConnectorError("Failed to check if namespace exists."))
   }
 }
@@ -63,6 +66,8 @@ pub fn add(
 
   case query {
     Ok([n]) -> Ok(n)
+    Error(sqlight.SqlightError(_, m, _)) ->
+      Error(ConnectorError("Failed to create namespace: " <> m))
     _ -> Error(ConnectorError("Failed to create namespace."))
   }
 }
@@ -87,6 +92,11 @@ pub fn delete(
 
   case query {
     Ok(_) -> Ok(Nil)
-    Error(_) -> Error(ConnectorError("Failed to delete namespace."))
+    Error(sqlight.SqlightError(sqlight.ConstraintTrigger, _, _)) ->
+      Error(ConnectorError(
+        "Failed to delete namespace. Please delete any services associated with this namespace first.",
+      ))
+    Error(sqlight.SqlightError(_, m, _)) ->
+      Error(ConnectorError("Failed to delete namespace: " <> m))
   }
 }

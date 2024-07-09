@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS queues (
   queue TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(queue, namespace_id),
-  FOREIGN KEY(namespace_id) REFERENCES namespaces(id) ON DELETE CASCADE
+  FOREIGN KEY(namespace_id) REFERENCES namespaces(id) ON DELETE RESTRICT
 );
 CREATE INDEX IF NOT EXISTS idx_queues_queue_namespace_id ON queues (queue, namespace_id);
 "
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS feature_flags (
   value TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(flag, namespace_id),
-  FOREIGN KEY(namespace_id) REFERENCES namespaces(id) ON DELETE CASCADE
+  FOREIGN KEY(namespace_id) REFERENCES namespaces(id) ON DELETE RESTRICT
 );
 CREATE INDEX IF NOT EXISTS idx_feature_flags_flag_namespace_id ON feature_flags (flag, namespace_id);
 "
