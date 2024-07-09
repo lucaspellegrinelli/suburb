@@ -11,12 +11,7 @@ pub type FeatureFlag {
 }
 
 pub type Log {
-  Log(
-    source: String,
-    level: String,
-    message: String,
-    created_at: String,
-  )
+  Log(source: String, level: String, message: String, created_at: String)
 }
 
 pub type ServiceError {

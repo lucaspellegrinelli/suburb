@@ -24,9 +24,7 @@ pub fn list() -> glint.Command(Nil) {
   use _, _, flags <- glint.command()
 
   let params: List(String) =
-    [
-      create_flag_item("flag", flag(flags)),
-    ]
+    [create_flag_item("flag", flag(flags))]
     |> list.filter(fn(x) { !string.is_empty(x) })
 
   let query_params = "?" <> string.join(params, "&")
