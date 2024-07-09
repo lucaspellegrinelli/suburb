@@ -1,4 +1,3 @@
-import gleam/io
 import gleam/dynamic
 import gleam/json
 import gleam/string_builder
@@ -34,6 +33,20 @@ pub fn flag_list_empty_test() {
   decoded_body |> should.equal([])
 }
 
+pub fn flag_list_from_non_existent_namespace_test() {
+  use c <- db.db_connection(":memory:")
+  let req = testing.get("", [])
+  let res = flag_route.list_route(req, Context(c, ""), "ns")
+  res.status |> should.equal(404)
+
+  let assert Ok(decoded_body) =
+    res.body
+    |> body_to_string
+    |> json.decode(dynamic.field("response", of: dynamic.string))
+
+  decoded_body |> should.equal("Namespace ns does not exist.")
+}
+
 pub fn flag_set_test() {
   use c <- db.db_connection(":memory:")
   namespace_service.add(c, "ns") |> should.be_ok()
@@ -46,6 +59,21 @@ pub fn flag_set_test() {
     |> json.decode(dynamic.field("response", of: flag_coder.decoder))
   decoded_body.flag |> should.equal("flag")
   decoded_body.value |> should.equal(True)
+}
+
+pub fn flag_set_from_non_existent_namespace_test() {
+  use c <- db.db_connection(":memory:")
+  let body = json.object([#("value", json.bool(True))])
+  let req = testing.post_json("", [], body)
+  let res = flag_route.set_route(req, Context(c, ""), "ns", "flag")
+  res.status |> should.equal(404)
+
+  let assert Ok(decoded_body) =
+    res.body
+    |> body_to_string
+    |> json.decode(dynamic.field("response", of: dynamic.string))
+
+  decoded_body |> should.equal("Namespace ns does not exist.")
 }
 
 pub fn flag_get_test() {
@@ -61,6 +89,20 @@ pub fn flag_get_test() {
 
   decoded_body.flag |> should.equal("flag")
   decoded_body.value |> should.equal(True)
+}
+
+pub fn flag_get_from_non_existent_namespace_test() {
+  use c <- db.db_connection(":memory:")
+  let req = testing.get("", [])
+  let res = flag_route.get_route(req, Context(c, ""), "ns", "flag")
+  res.status |> should.equal(404)
+
+  let assert Ok(decoded_body) =
+    res.body
+    |> body_to_string
+    |> json.decode(dynamic.field("response", of: dynamic.string))
+
+  decoded_body |> should.equal("Namespace ns does not exist.")
 }
 
 pub fn flag_get_from_non_existent_flag_test() {
@@ -108,6 +150,20 @@ pub fn flag_delete_test() {
     |> json.decode(dynamic.field("response", of: dynamic.string))
 
   decoded_body |> should.equal("Feature Flag flag has been deleted.")
+}
+
+pub fn flag_delete_from_non_existent_namespace_test() {
+  use c <- db.db_connection(":memory:")
+  let req = testing.delete("", [], "")
+  let res = flag_route.delete_route(req, Context(c, ""), "ns", "flag")
+  res.status |> should.equal(404)
+
+  let assert Ok(decoded_body) =
+    res.body
+    |> body_to_string
+    |> json.decode(dynamic.field("response", of: dynamic.string))
+
+  decoded_body |> should.equal("Namespace ns does not exist.")
 }
 
 pub fn flag_namespace_filter_test() {

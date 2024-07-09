@@ -33,6 +33,20 @@ pub fn queue_list_empty_test() {
   decoded_body |> should.equal([])
 }
 
+pub fn queue_list_from_non_existent_namespace_test() {
+  use c <- db.db_connection(":memory:")
+  let req = testing.get("", [])
+  let res = queue_route.list_route(req, Context(c, ""), "ns")
+  res.status |> should.equal(404)
+
+  let assert Ok(decoded_body) =
+    res.body
+    |> body_to_string
+    |> json.decode(dynamic.field("response", of: dynamic.string))
+
+  decoded_body |> should.equal("Namespace ns does not exist.")
+}
+
 pub fn queue_create_test() {
   use c <- db.db_connection(":memory:")
   namespace_service.add(c, "ns") |> should.be_ok()
@@ -45,6 +59,19 @@ pub fn queue_create_test() {
     |> json.decode(dynamic.field("response", of: queue_coder.decoder))
 
   decoded_body.queue |> should.equal("queue")
+}
+
+pub fn queue_create_from_non_existent_namespace_test() {
+  use c <- db.db_connection(":memory:")
+  let body = json.object([#("queue", json.string("queue"))])
+  let req = testing.post_json("", [], body)
+  let res = queue_route.create_route(req, Context(c, ""), "ns")
+  let assert Ok(decoded_body) =
+    res.body
+    |> body_to_string
+    |> json.decode(dynamic.field("response", of: dynamic.string))
+
+  decoded_body |> should.equal("Namespace ns does not exist.")
 }
 
 pub fn queue_create_duplicate_test() {
@@ -83,6 +110,21 @@ pub fn queue_push_test() {
   decoded_body |> should.equal("msg")
 }
 
+pub fn queue_push_to_non_existent_namespace_test() {
+  use c <- db.db_connection(":memory:")
+  let body = json.object([#("message", json.string("msg"))])
+  let req = testing.post_json("", [], body)
+  let res = queue_route.push_route(req, Context(c, ""), "ns", "queue")
+  res.status |> should.equal(404)
+
+  let assert Ok(decoded_body) =
+    res.body
+    |> body_to_string
+    |> json.decode(dynamic.field("response", of: dynamic.string))
+
+  decoded_body |> should.equal("Namespace ns does not exist.")
+}
+
 pub fn queue_push_to_non_existent_test() {
   use c <- db.db_connection(":memory:")
   namespace_service.add(c, "ns") |> should.be_ok()
@@ -114,6 +156,20 @@ pub fn queue_pop_test() {
 
   decoded_body |> should.equal("msg")
   queue_service.length(c, "ns", "queue") |> should.equal(Ok(0))
+}
+
+pub fn queue_pop_from_non_existent_namespace_test() {
+  use c <- db.db_connection(":memory:")
+  let req = testing.post("", [], "")
+  let res = queue_route.pop_route(req, Context(c, ""), "ns", "queue")
+  res.status |> should.equal(404)
+
+  let assert Ok(decoded_body) =
+    res.body
+    |> body_to_string
+    |> json.decode(dynamic.field("response", of: dynamic.string))
+
+  decoded_body |> should.equal("Namespace ns does not exist.")
 }
 
 pub fn queue_pop_from_non_existent_test() {
@@ -164,6 +220,20 @@ pub fn queue_peek_test() {
   queue_service.length(c, "ns", "queue") |> should.equal(Ok(1))
 }
 
+pub fn queue_peek_from_non_existent_namespace_test() {
+  use c <- db.db_connection(":memory:")
+  let req = testing.get("", [])
+  let res = queue_route.peek_route(req, Context(c, ""), "ns", "queue")
+  res.status |> should.equal(404)
+
+  let assert Ok(decoded_body) =
+    res.body
+    |> body_to_string
+    |> json.decode(dynamic.field("response", of: dynamic.string))
+
+  decoded_body |> should.equal("Namespace ns does not exist.")
+}
+
 pub fn queue_peek_from_non_existent_test() {
   use c <- db.db_connection(":memory:")
   namespace_service.add(c, "ns") |> should.be_ok()
@@ -212,6 +282,20 @@ pub fn queue_length_test() {
   decoded_body |> should.equal(2)
 }
 
+pub fn queue_length_from_non_existent_namespace_test() {
+  use c <- db.db_connection(":memory:")
+  let req = testing.get("", [])
+  let res = queue_route.length_route(req, Context(c, ""), "ns", "queue")
+  res.status |> should.equal(404)
+
+  let assert Ok(decoded_body) =
+    res.body
+    |> body_to_string
+    |> json.decode(dynamic.field("response", of: dynamic.string))
+
+  decoded_body |> should.equal("Namespace ns does not exist.")
+}
+
 pub fn queue_length_of_non_existent_test() {
   use c <- db.db_connection(":memory:")
   namespace_service.add(c, "ns") |> should.be_ok()
@@ -242,6 +326,20 @@ pub fn queue_delete_test() {
 
   decoded_body |> should.equal("Queue queue deleted.")
   queue_service.list(c, "ns", []) |> should.equal(Ok([]))
+}
+
+pub fn queue_delete_from_non_existent_namespace_test() {
+  use c <- db.db_connection(":memory:")
+  let req = testing.delete("", [], "")
+  let res = queue_route.delete_route(req, Context(c, ""), "ns", "queue")
+  res.status |> should.equal(404)
+
+  let assert Ok(decoded_body) =
+    res.body
+    |> body_to_string
+    |> json.decode(dynamic.field("response", of: dynamic.string))
+
+  decoded_body |> should.equal("Namespace ns does not exist.")
 }
 
 pub fn queue_delete_non_existent_test() {

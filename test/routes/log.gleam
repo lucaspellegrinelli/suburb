@@ -34,6 +34,20 @@ pub fn log_list_empty_test() {
   decoded_body |> should.equal([])
 }
 
+pub fn log_list_from_non_existent_namespace_test() {
+  use c <- db.db_connection(":memory:")
+  let req = testing.get("", [])
+  let res = log_route.list_route(req, Context(c, ""), "ns")
+  res.status |> should.equal(404)
+
+  let assert Ok(decoded_body) =
+    res.body
+    |> body_to_string
+    |> json.decode(dynamic.field("response", of: dynamic.string))
+
+  decoded_body |> should.equal("Namespace ns does not exist.")
+}
+
 pub fn log_add_test() {
   use c <- db.db_connection(":memory:")
   namespace_service.add(c, "ns") |> should.be_ok()
@@ -53,6 +67,26 @@ pub fn log_add_test() {
   decoded_body.source |> should.equal("src")
   decoded_body.level |> should.equal("lvl")
   decoded_body.message |> should.equal("msg")
+}
+
+pub fn log_add_non_existent_namespace_test() {
+  use c <- db.db_connection(":memory:")
+  let body =
+    json.object([
+      #("source", json.string("src")),
+      #("level", json.string("lvl")),
+      #("message", json.string("msg")),
+    ])
+  let req = testing.post_json("", [], body)
+  let res = log_route.add_route(req, Context(c, ""), "ns")
+  res.status |> should.equal(404)
+
+  let assert Ok(decoded_body) =
+    res.body
+    |> body_to_string
+    |> json.decode(dynamic.field("response", of: dynamic.string))
+
+  decoded_body |> should.equal("Namespace ns does not exist.")
 }
 
 pub fn log_list_with_logs_test() {
