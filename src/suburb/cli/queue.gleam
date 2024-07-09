@@ -10,11 +10,7 @@ import glint
 import suburb/cli/utils/display.{print_table}
 import suburb/cli/utils/req.{create_flag_item, make_request}
 import suburb/coders/queue as queue_coder
-
-fn namespace_flag() -> glint.Flag(String) {
-  glint.string_flag("namespace")
-  |> glint.flag_help("The namespace to list logs for")
-}
+import suburb/env
 
 fn queue_flag() -> glint.Flag(String) {
   glint.string_flag("queue")
@@ -22,14 +18,14 @@ fn queue_flag() -> glint.Flag(String) {
 }
 
 pub fn list() -> glint.Command(Nil) {
-  use <- glint.command_help("List all the queues in a namespace")
-  use namespace <- glint.flag(namespace_flag())
+  use envvars <- env.with_env_variables()
+  use <- glint.command_help("List all the queues in the current namespace")
   use queue <- glint.flag(queue_flag())
   use _, _, flags <- glint.command()
 
   let params: List(String) =
     [
-      create_flag_item("namespace", namespace(flags)),
+      create_flag_item("namespace", Ok(envvars.namespace)),
       create_flag_item("queue", queue(flags)),
     ]
     |> list.filter(fn(x) { !string.is_empty(x) })
@@ -56,8 +52,8 @@ pub fn list() -> glint.Command(Nil) {
 }
 
 pub fn create() -> glint.Command(Nil) {
+  use envvars <- env.with_env_variables()
   use <- glint.command_help("Create a queue")
-  use namespace <- glint.named_arg("namespace")
   use name <- glint.named_arg("name")
   use named, _, _ <- glint.command()
 
@@ -68,7 +64,7 @@ pub fn create() -> glint.Command(Nil) {
   }
   let body =
     json.object([
-      #("namespace", json.string(namespace(named))),
+      #("namespace", json.string(envvars.namespace)),
       #("queue", json.string(name(named))),
     ])
 
@@ -84,13 +80,13 @@ pub fn create() -> glint.Command(Nil) {
 }
 
 pub fn push() -> glint.Command(Nil) {
+  use envvars <- env.with_env_variables()
   use <- glint.command_help("Push a message to a queue")
-  use namespace <- glint.named_arg("namespace")
   use name <- glint.named_arg("name")
   use message <- glint.named_arg("message")
   use named, _, _ <- glint.command()
 
-  let url = "/queues/" <> namespace(named) <> "/" <> name(named)
+  let url = "/queues/" <> envvars.namespace <> "/" <> name(named)
   let decoder = fn(body: String) {
     body
     |> json.decode(dynamic.field("response", of: dynamic.string))
@@ -104,12 +100,12 @@ pub fn push() -> glint.Command(Nil) {
 }
 
 pub fn delete() -> glint.Command(Nil) {
+  use envvars <- env.with_env_variables()
   use <- glint.command_help("Delete a queue")
-  use namespace <- glint.named_arg("namespace")
   use name <- glint.named_arg("name")
   use named, _, _ <- glint.command()
 
-  let url = "/queues/" <> namespace(named) <> "/" <> name(named)
+  let url = "/queues/" <> envvars.namespace <> "/" <> name(named)
   let decoder = fn(body: String) {
     body
     |> json.decode(dynamic.field("response", of: dynamic.string))
@@ -122,12 +118,12 @@ pub fn delete() -> glint.Command(Nil) {
 }
 
 pub fn peek() -> glint.Command(Nil) {
+  use envvars <- env.with_env_variables()
   use <- glint.command_help("Peek at the next message in a queue")
-  use namespace <- glint.named_arg("namespace")
   use name <- glint.named_arg("name")
   use named, _, _ <- glint.command()
 
-  let url = "/queues/" <> namespace(named) <> "/" <> name(named) <> "/peek"
+  let url = "/queues/" <> envvars.namespace <> "/" <> name(named) <> "/peek"
   let decoder = fn(body: String) {
     body
     |> json.decode(dynamic.field("response", of: dynamic.string))
@@ -140,12 +136,12 @@ pub fn peek() -> glint.Command(Nil) {
 }
 
 pub fn pop() -> glint.Command(Nil) {
+  use envvars <- env.with_env_variables()
   use <- glint.command_help("Pop a message from a queue")
-  use namespace <- glint.named_arg("namespace")
   use name <- glint.named_arg("name")
   use named, _, _ <- glint.command()
 
-  let url = "/queues/" <> namespace(named) <> "/" <> name(named) <> "/pop"
+  let url = "/queues/" <> envvars.namespace <> "/" <> name(named) <> "/pop"
   let decoder = fn(body: String) {
     body
     |> json.decode(dynamic.field("response", of: dynamic.string))
@@ -158,12 +154,12 @@ pub fn pop() -> glint.Command(Nil) {
 }
 
 pub fn length() -> glint.Command(Nil) {
+  use envvars <- env.with_env_variables()
   use <- glint.command_help("Get the length of a queue")
-  use namespace <- glint.named_arg("namespace")
   use name <- glint.named_arg("name")
   use named, _, _ <- glint.command()
 
-  let url = "/queues/" <> namespace(named) <> "/" <> name(named) <> "/length"
+  let url = "/queues/" <> envvars.namespace <> "/" <> name(named) <> "/length"
   let decoder = fn(body: String) {
     body
     |> json.decode(dynamic.field("response", of: dynamic.int))

@@ -26,7 +26,7 @@ pub fn make_request(
   body: Option(json.Json),
   decoder: fn(String) -> Result(a, json.DecodeError),
 ) {
-  use EnvVars(env_host, key) <- result.try(env.get_env_variables())
+  use EnvVars(env_host, key, _) <- result.try(env.get_env_variables())
 
   let assert Ok(info_re) = regex.from_string(host_info)
   let info = case regex.scan(with: info_re, content: env_host) {

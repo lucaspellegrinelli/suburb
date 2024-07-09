@@ -9,11 +9,7 @@ import glint
 import suburb/cli/utils/display.{print_table}
 import suburb/cli/utils/req.{create_flag_item, make_request}
 import suburb/coders/log
-
-fn namespace_flag() -> glint.Flag(String) {
-  glint.string_flag("namespace")
-  |> glint.flag_help("The namespace to list logs for")
-}
+import suburb/env
 
 fn source_flag() -> glint.Flag(String) {
   glint.string_flag("source")
@@ -42,8 +38,8 @@ fn limit_flag() -> glint.Flag(String) {
 }
 
 pub fn list() -> glint.Command(Nil) {
-  use <- glint.command_help("List the logs for a namespace")
-  use namespace <- glint.flag(namespace_flag())
+  use envvars <- env.with_env_variables()
+  use <- glint.command_help("List the logs for the current namespace")
   use source <- glint.flag(source_flag())
   use level <- glint.flag(level_flag())
   use from_time <- glint.flag(from_time_flag())
@@ -53,7 +49,7 @@ pub fn list() -> glint.Command(Nil) {
 
   let params: List(String) =
     [
-      create_flag_item("namespace", namespace(flags)),
+      create_flag_item("namespace", Ok(envvars.namespace)),
       create_flag_item("source", source(flags)),
       create_flag_item("level", level(flags)),
       create_flag_item("from_time", from_time(flags)),

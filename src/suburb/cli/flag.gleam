@@ -10,11 +10,7 @@ import glint
 import suburb/cli/utils/display.{print_table}
 import suburb/cli/utils/req.{create_flag_item, make_request}
 import suburb/coders/flag as flag_coder
-
-fn namespace_flag() -> glint.Flag(String) {
-  glint.string_flag("namespace")
-  |> glint.flag_help("The namespace to list logs for")
-}
+import suburb/env
 
 fn flag_flag() -> glint.Flag(String) {
   glint.string_flag("flag")
@@ -22,14 +18,14 @@ fn flag_flag() -> glint.Flag(String) {
 }
 
 pub fn list() -> glint.Command(Nil) {
-  use <- glint.command_help("List all the feature flags in a namespace")
-  use namespace <- glint.flag(namespace_flag())
+  use envvars <- env.with_env_variables()
+  use <- glint.command_help("List feature flags in the current namespace")
   use flag <- glint.flag(flag_flag())
   use _, _, flags <- glint.command()
 
   let params: List(String) =
     [
-      create_flag_item("namespace", namespace(flags)),
+      create_flag_item("namespace", Ok(envvars.namespace)),
       create_flag_item("flag", flag(flags)),
     ]
     |> list.filter(fn(x) { !string.is_empty(x) })
@@ -58,19 +54,19 @@ pub fn list() -> glint.Command(Nil) {
 }
 
 pub fn set(value: Bool) -> glint.Command(Nil) {
+  use envvars <- env.with_env_variables()
   use <- glint.command_help("Set a value for a feature flag")
-  use namespace <- glint.named_arg("namespace")
   use name <- glint.named_arg("name")
   use named, _, _ <- glint.command()
 
-  let url = "/flags/" <> namespace(named) <> "/" <> name(named)
+  let url = "/flags/" <> envvars.namespace <> "/" <> name(named)
   let decoder = fn(body: String) {
     body
     |> json.decode(dynamic.field("response", of: flag_coder.decoder))
   }
   let body =
     json.object([
-      #("namespace", json.string(namespace(named))),
+      #("namespace", json.string(envvars.namespace)),
       #("flag", json.string(name(named))),
       #("value", json.bool(value)),
     ])
@@ -87,12 +83,12 @@ pub fn set(value: Bool) -> glint.Command(Nil) {
 }
 
 pub fn get() -> glint.Command(Nil) {
+  use envvars <- env.with_env_variables()
   use <- glint.command_help("Get the value of a feature flag")
-  use namespace <- glint.named_arg("namespace")
   use name <- glint.named_arg("name")
   use named, _, _ <- glint.command()
 
-  let url = "/flags/" <> namespace(named) <> "/" <> name(named)
+  let url = "/flags/" <> envvars.namespace <> "/" <> name(named)
   let decoder = fn(body: String) {
     body
     |> json.decode(dynamic.field("response", of: flag_coder.decoder))
@@ -105,12 +101,12 @@ pub fn get() -> glint.Command(Nil) {
 }
 
 pub fn delete() -> glint.Command(Nil) {
+  use envvars <- env.with_env_variables()
   use <- glint.command_help("Delete a feature flag")
-  use namespace <- glint.named_arg("namespace")
   use name <- glint.named_arg("name")
   use named, _, _ <- glint.command()
 
-  let url = "/flags/" <> namespace(named) <> "/" <> name(named)
+  let url = "/flags/" <> envvars.namespace <> "/" <> name(named)
   let decoder = fn(body: String) {
     body
     |> json.decode(dynamic.field("response", of: dynamic.string))
