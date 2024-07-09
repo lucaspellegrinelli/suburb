@@ -79,8 +79,7 @@ suburb host
 
 To access these features in your code you can send HTTP requests following the API rules to your Surburb host. To simplify the process you can use one of the following clients for it (just copy these to your project):
 
- - [[WIP] Python Client](https://github.com/lucaspellegrinelli/suburb/blob/main/clients/suburb.py) Works but doesn't have typing or anything relevant. Just calls the API and returns the raw response
- - [[WIP] Javascript Client](https://github.com/lucaspellegrinelli/suburb/blob/main/clients/suburb.js) Works but doesn't have typing or anything relevant. Just calls the API and returns the raw response
+ - [Python Client](https://github.com/lucaspellegrinelli/suburb/blob/main/clients/suburb.py)
 
 ## Running tests
 
