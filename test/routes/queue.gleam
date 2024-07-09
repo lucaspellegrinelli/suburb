@@ -20,6 +20,7 @@ fn body_to_string(body: wisp.Body) {
 
 pub fn queue_list_empty_test() {
   use c <- db.db_connection(":memory:")
+  namespace_service.add(c, "ns") |> should.be_ok()
   let req = testing.get("", [])
   let res = queue_route.list_route(req, Context(c, ""), "ns")
   let assert Ok(decoded_body) =

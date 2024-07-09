@@ -1,3 +1,4 @@
+import gleam/io
 import gleam/dynamic
 import gleam/json
 import gleam/string_builder
@@ -20,6 +21,7 @@ fn body_to_string(body: wisp.Body) {
 
 pub fn flag_list_empty_test() {
   use c <- db.db_connection(":memory:")
+  namespace_service.add(c, "ns") |> should.be_ok()
   let req = testing.get("", [])
   let res = flag_route.list_route(req, Context(c, ""), "ns")
   let assert Ok(decoded_body) =

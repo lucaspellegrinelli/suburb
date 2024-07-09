@@ -1,9 +1,14 @@
+import gleam/bool
 import gleam/dynamic
 import gleam/list
 import gleam/pair
+import gleam/result
 import gleam/string
 import sqlight
-import suburb/types.{type Log, type ServiceError, ConnectorError, Log}
+import suburb/services/namespace.{namespace_is_created}
+import suburb/types.{
+  type Log, type ServiceError, ConnectorError, Log, ResourceDoesNotExist,
+}
 
 pub type LogFilters {
   Source(String)
@@ -26,16 +31,22 @@ pub fn list(
   filters: List(LogFilters),
   limit: Int,
 ) -> Result(List(Log), ServiceError) {
+  use exists <- result.try(namespace_is_created(conn, namespace))
+  use <- bool.guard(
+    !exists,
+    Error(ResourceDoesNotExist("Namespace " <> namespace <> " does not exist.")),
+  )
+
   let where_items =
     list.map(filters, fn(filter) {
       case filter {
-        Source(v) -> #("source = ?", sqlight.text(v))
-        Level(v) -> #("level = ?", sqlight.text(v))
-        FromTime(v) -> #("created_at >= ?", sqlight.text(v))
-        UntilTime(v) -> #("created_at <= ?", sqlight.text(v))
+        Source(v) -> #("l.source = ?", sqlight.text(v))
+        Level(v) -> #("l.level = ?", sqlight.text(v))
+        FromTime(v) -> #("l.created_at >= ?", sqlight.text(v))
+        UntilTime(v) -> #("l.created_at <= ?", sqlight.text(v))
       }
     })
-    |> list.append([#("namespace = ?", sqlight.text(namespace))])
+    |> list.append([#("n.name = ?", sqlight.text(namespace))])
 
   let where_keys = list.map(where_items, pair.first)
   let where_values = list.map(where_items, pair.second)
@@ -46,9 +57,9 @@ pub fn list(
   }
 
   let sql =
-    "SELECT source, level, message, created_at FROM logs JOIN namespaces ON logs.namespace_id = namespaces.id "
+    "SELECT l.source, l.level, l.message, l.created_at FROM logs as l JOIN namespaces as n ON l.namespace_id = n.id "
     <> where_clause
-    <> " ORDER BY created_at DESC LIMIT ?"
+    <> " ORDER BY l.created_at DESC LIMIT ?"
 
   let vars = list.concat([where_values, [sqlight.int(limit)]])
 
@@ -79,6 +90,12 @@ pub fn add(
   level: String,
   message: String,
 ) -> Result(Log, ServiceError) {
+  use exists <- result.try(namespace_is_created(conn, namespace))
+  use <- bool.guard(
+    !exists,
+    Error(ResourceDoesNotExist("Namespace " <> namespace <> " does not exist.")),
+  )
+
   let query =
     sqlight.query(
       add_log,

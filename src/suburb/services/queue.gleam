@@ -5,6 +5,7 @@ import gleam/pair
 import gleam/result
 import gleam/string
 import sqlight
+import suburb/services/namespace.{namespace_is_created}
 import suburb/types.{
   type Queue, type ServiceError, ConnectorError, EmptyQueue, Queue,
   ResourceAlreadyExists, ResourceDoesNotExist,
@@ -82,7 +83,7 @@ const peek_query = "
   "
 
 const delete_query = "
-    DELETE FROM queued_values
+    DELETE FROM queues
     WHERE queue = ? AND namespace_id = (
         SELECT id FROM namespaces WHERE name = ?
     )
@@ -93,12 +94,19 @@ pub fn list(
   namespace: String,
   filters: List(QueueFilters),
 ) -> Result(List(Queue), ServiceError) {
+  use exists <- result.try(namespace_is_created(conn, namespace))
+  use <- bool.guard(
+    !exists,
+    Error(ResourceDoesNotExist("Namespace " <> namespace <> " does not exist.")),
+  )
+
   let where_items =
     list.map(filters, fn(filter) {
       case filter {
-        QueueName(v) -> #("queue = ?", sqlight.text(v))
+        QueueName(v) -> #("q.queue = ?", sqlight.text(v))
       }
-    }) |> list.append([#("namespaces.name = ?", sqlight.text(namespace))])
+    })
+    |> list.append([#("n.name = ?", sqlight.text(namespace))])
 
   let where_keys = list.map(where_items, pair.first)
   let where_values = list.map(where_items, pair.second)
@@ -109,9 +117,9 @@ pub fn list(
   }
 
   let sql =
-    "SELECT queue FROM queues JOIN namespaces ON queues.namespace_id = namespaces.id "
+    "SELECT q.queue FROM queues as q JOIN namespaces as n ON q.namespace_id = n.id "
     <> where_clause
-    <> " ORDER BY queue ASC"
+    <> " ORDER BY q.queue ASC"
 
   let query =
     sqlight.query(
@@ -152,6 +160,12 @@ pub fn length(
   namespace: String,
   name: String,
 ) -> Result(Int, ServiceError) {
+  use exists <- result.try(namespace_is_created(conn, namespace))
+  use <- bool.guard(
+    !exists,
+    Error(ResourceDoesNotExist("Namespace " <> namespace <> " does not exist.")),
+  )
+
   use exists <- result.try(queue_is_created(conn, namespace, name))
   use <- bool.guard(
     !exists,
@@ -178,6 +192,12 @@ pub fn push(
   name: String,
   value: String,
 ) -> Result(String, ServiceError) {
+  use exists <- result.try(namespace_is_created(conn, namespace))
+  use <- bool.guard(
+    !exists,
+    Error(ResourceDoesNotExist("Namespace " <> namespace <> " does not exist.")),
+  )
+
   use exists <- result.try(queue_is_created(conn, namespace, name))
   use <- bool.guard(
     !exists,
@@ -203,6 +223,12 @@ pub fn pop(
   namespace: String,
   name: String,
 ) -> Result(String, ServiceError) {
+  use exists <- result.try(namespace_is_created(conn, namespace))
+  use <- bool.guard(
+    !exists,
+    Error(ResourceDoesNotExist("Namespace " <> namespace <> " does not exist.")),
+  )
+
   use exists <- result.try(queue_is_created(conn, namespace, name))
   use <- bool.guard(
     !exists,
@@ -242,6 +268,12 @@ pub fn create(
   namespace: String,
   name: String,
 ) -> Result(Queue, ServiceError) {
+  use exists <- result.try(namespace_is_created(conn, namespace))
+  use <- bool.guard(
+    !exists,
+    Error(ResourceDoesNotExist("Namespace " <> namespace <> " does not exist.")),
+  )
+
   use exists <- result.try(queue_is_created(conn, namespace, name))
   use <- bool.guard(
     exists,
@@ -267,6 +299,12 @@ pub fn peek(
   namespace: String,
   name: String,
 ) -> Result(String, ServiceError) {
+  use exists <- result.try(namespace_is_created(conn, namespace))
+  use <- bool.guard(
+    !exists,
+    Error(ResourceDoesNotExist("Namespace " <> namespace <> " does not exist.")),
+  )
+
   use exists <- result.try(queue_is_created(conn, namespace, name))
   use <- bool.guard(
     !exists,
@@ -293,6 +331,12 @@ pub fn delete(
   namespace: String,
   name: String,
 ) -> Result(Nil, ServiceError) {
+  use exists <- result.try(namespace_is_created(conn, namespace))
+  use <- bool.guard(
+    !exists,
+    Error(ResourceDoesNotExist("Namespace " <> namespace <> " does not exist.")),
+  )
+
   use exists <- result.try(queue_is_created(conn, namespace, name))
   use <- bool.guard(
     !exists,

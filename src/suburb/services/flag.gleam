@@ -53,13 +53,18 @@ pub fn list(
   namespace: String,
   filters: List(FlagFilters),
 ) -> Result(List(FeatureFlag), ServiceError) {
+  use exists <- result.try(namespace_is_created(conn, namespace))
+  use <- bool.guard(
+    !exists,
+    Error(ResourceDoesNotExist("Namespace " <> namespace <> " does not exist.")),
+  )
   let where_items =
     list.map(filters, fn(filter) {
       case filter {
-        Flag(v) -> #("flag = ?", sqlight.text(v))
+        Flag(v) -> #("f.flag = ?", sqlight.text(v))
       }
     })
-    |> list.append([#("namespaces.name = ?", sqlight.text(namespace))])
+    |> list.append([#("n.name = ?", sqlight.text(namespace))])
 
   let where_keys = list.map(where_items, pair.first)
   let where_values = list.map(where_items, pair.second)
@@ -70,9 +75,9 @@ pub fn list(
   }
 
   let sql =
-    "SELECT flag, value FROM feature_flags JOIN namespaces ON feature_flags.namespace_id = namespaces.id "
+    "SELECT f.flag, f.value FROM feature_flags as f JOIN namespaces as n ON f.namespace_id = n.id "
     <> where_clause
-    <> " ORDER BY flag ASC"
+    <> " ORDER BY f.flag ASC"
 
   let query =
     sqlight.query(
