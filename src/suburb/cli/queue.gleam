@@ -43,7 +43,7 @@ pub fn list() -> glint.Command(Nil) {
   case make_request(url, http.Get, None, decoder) {
     Error(e) -> io.println(e)
     Ok(queues) -> {
-      let values = list.map(queues, fn(q) { [q.namespace, q.queue] })
+      let values = list.map(queues, fn(q) { [envvars.namespace, q.queue] })
       let headers = ["NAMESPACE", "QUEUE"]
       let col_sizes = [16, 999]
       print_table(headers, values, col_sizes)
@@ -70,8 +70,8 @@ pub fn create() -> glint.Command(Nil) {
 
   case make_request(url, http.Post, Some(body), decoder) {
     Error(e) -> io.println(e)
-    Ok(queue) -> {
-      let values = [[queue.namespace, queue.queue]]
+    Ok(q) -> {
+      let values = [[envvars.namespace, q.queue]]
       let headers = ["NAMESPACE", "QUEUE"]
       let col_sizes = [16, 999]
       print_table(headers, values, col_sizes)

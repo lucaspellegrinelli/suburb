@@ -71,7 +71,7 @@ pub fn list() -> glint.Command(Nil) {
     Ok(logs) -> {
       let values =
         list.map(logs, fn(l) {
-          [l.created_at, l.namespace, l.source, l.level, l.message]
+          [l.created_at, envvars.namespace, l.source, l.level, l.message]
         })
       let headers = ["TIMESTAMP", "NAMESPACE", "SOURCE", "LEVEL", "MESSAGE"]
       let col_sizes = [24, 16, 16, 12, 999]

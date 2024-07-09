@@ -1,21 +1,20 @@
 import gleeunit/should
 import suburb/db
-import suburb/services/queue.{Namespace, QueueName}
+import suburb/services/queue.{QueueName}
 import suburb/types.{
   EmptyQueue, Queue, ResourceAlreadyExists, ResourceDoesNotExist,
 }
 
 pub fn queue_empty_test() {
   use conn <- db.db_connection(":memory:")
-  queue.list(conn, []) |> should.equal(Ok([]))
+  queue.list(conn, "ns", []) |> should.equal(Ok([]))
 }
 
 pub fn queue_create_test() {
   use conn <- db.db_connection(":memory:")
-  queue.create(conn, "ns", "queue") |> should.equal(Ok(Queue("ns", "queue")))
-  case queue.list(conn, []) {
+  queue.create(conn, "ns", "queue") |> should.equal(Ok(Queue("queue")))
+  case queue.list(conn, "ns", []) {
     Ok([q]) -> {
-      q.namespace |> should.equal("ns")
       q.queue |> should.equal("queue")
     }
     _ -> should.fail()
@@ -33,9 +32,8 @@ pub fn queue_push_test() {
   use conn <- db.db_connection(":memory:")
   queue.create(conn, "ns", "queue") |> should.be_ok()
   queue.push(conn, "ns", "queue", "item") |> should.equal(Ok("item"))
-  case queue.list(conn, []) {
+  case queue.list(conn, "ns", []) {
     Ok([q]) -> {
-      q.namespace |> should.equal("ns")
       q.queue |> should.equal("queue")
     }
     _ -> should.fail()
@@ -111,7 +109,7 @@ pub fn queue_delete_test() {
   queue.create(conn, "ns", "queue") |> should.be_ok()
   queue.push(conn, "ns", "queue", "item") |> should.be_ok()
   queue.delete(conn, "ns", "queue") |> should.equal(Ok(Nil))
-  queue.list(conn, []) |> should.equal(Ok([]))
+  queue.list(conn, "ns", []) |> should.equal(Ok([]))
 }
 
 pub fn queue_delete_non_existent_test() {
@@ -122,10 +120,10 @@ pub fn queue_delete_non_existent_test() {
 
 pub fn queue_namespace_filter_test() {
   use conn <- db.db_connection(":memory:")
-  queue.create(conn, "ns1", "queue") |> should.be_ok()
-  queue.create(conn, "ns2", "queue") |> should.be_ok()
-  case queue.list(conn, [Namespace("ns1")]) {
-    Ok([q]) -> q.namespace |> should.equal("ns1")
+  queue.create(conn, "ns1", "queue1") |> should.be_ok()
+  queue.create(conn, "ns2", "queue2") |> should.be_ok()
+  case queue.list(conn, "ns1", []) {
+    Ok([q]) -> q.queue |> should.equal("queue1")
     _ -> should.fail()
   }
 }
@@ -134,7 +132,7 @@ pub fn queue_name_filter_test() {
   use conn <- db.db_connection(":memory:")
   queue.create(conn, "ns", "queue1") |> should.be_ok()
   queue.create(conn, "ns", "queue2") |> should.be_ok()
-  case queue.list(conn, [QueueName("queue1")]) {
+  case queue.list(conn, "ns", [QueueName("queue1")]) {
     Ok([q]) -> q.queue |> should.equal("queue1")
     _ -> should.fail()
   }
@@ -146,9 +144,8 @@ pub fn queue_multiple_filter_test() {
   queue.create(conn, "ns1", "queue2") |> should.be_ok()
   queue.create(conn, "ns2", "queue1") |> should.be_ok()
   queue.create(conn, "ns2", "queue2") |> should.be_ok()
-  case queue.list(conn, [Namespace("ns1"), QueueName("queue1")]) {
+  case queue.list(conn, "ns1", [QueueName("queue1")]) {
     Ok([q]) -> {
-      q.namespace |> should.equal("ns1")
       q.queue |> should.equal("queue1")
     }
     _ -> should.fail()

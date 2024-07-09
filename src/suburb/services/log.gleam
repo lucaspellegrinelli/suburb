@@ -6,7 +6,6 @@ import sqlight
 import suburb/types.{type Log, type ServiceError, ConnectorError, Log}
 
 pub type LogFilters {
-  Namespace(String)
   Source(String)
   Level(String)
   FromTime(String)
@@ -14,26 +13,29 @@ pub type LogFilters {
 }
 
 const add_log = "
-  INSERT INTO logs (namespace, source, level, message)
-  VALUES (?, ?, ?, ?)
-  RETURNING namespace, source, level, message, created_at;
+  INSERT INTO logs (namespace_id, source, level, message)
+  VALUES (
+    (SELECT id FROM namespaces WHERE name = ?), ?, ?, ?
+  )
+  RETURNING source, level, message, created_at;
 "
 
 pub fn list(
   conn: sqlight.Connection,
+  namespace: String,
   filters: List(LogFilters),
   limit: Int,
 ) -> Result(List(Log), ServiceError) {
   let where_items =
     list.map(filters, fn(filter) {
       case filter {
-        Namespace(v) -> #("namespace = ?", sqlight.text(v))
         Source(v) -> #("source = ?", sqlight.text(v))
         Level(v) -> #("level = ?", sqlight.text(v))
         FromTime(v) -> #("created_at >= ?", sqlight.text(v))
         UntilTime(v) -> #("created_at <= ?", sqlight.text(v))
       }
     })
+    |> list.append([#("namespace = ?", sqlight.text(namespace))])
 
   let where_keys = list.map(where_items, pair.first)
   let where_values = list.map(where_items, pair.second)
@@ -44,7 +46,7 @@ pub fn list(
   }
 
   let sql =
-    "SELECT namespace, source, level, message, created_at FROM logs "
+    "SELECT source, level, message, created_at FROM logs JOIN namespaces ON logs.namespace_id = namespaces.id "
     <> where_clause
     <> " ORDER BY created_at DESC LIMIT ?"
 
@@ -55,13 +57,12 @@ pub fn list(
       sql,
       on: conn,
       with: vars,
-      expecting: dynamic.decode5(
+      expecting: dynamic.decode4(
         Log,
         dynamic.element(0, dynamic.string),
         dynamic.element(1, dynamic.string),
         dynamic.element(2, dynamic.string),
         dynamic.element(3, dynamic.string),
-        dynamic.element(4, dynamic.string),
       ),
     )
 
@@ -88,13 +89,12 @@ pub fn add(
         sqlight.text(level),
         sqlight.text(message),
       ],
-      expecting: dynamic.decode5(
+      expecting: dynamic.decode4(
         Log,
         dynamic.element(0, dynamic.string),
         dynamic.element(1, dynamic.string),
         dynamic.element(2, dynamic.string),
         dynamic.element(3, dynamic.string),
-        dynamic.element(4, dynamic.string),
       ),
     )
 

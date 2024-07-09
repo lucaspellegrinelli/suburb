@@ -30,7 +30,7 @@ pub fn list(conn: sqlight.Connection) -> Result(List(Namespace), ServiceError) {
   }
 }
 
-fn namespace_is_created(
+pub fn namespace_is_created(
   conn: sqlight.Connection,
   name: String,
 ) -> Result(Bool, ServiceError) {
