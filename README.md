@@ -31,7 +31,8 @@ suburb config --token="your_api_secret"
 Than you can interact with the features like
 
 ```bash
-# Select a namespace (you can think of it like a project)
+# Create and select a namespace (you can think of it like a project)
+suburb namespace new "my_namespace"
 suburb config --namespace="my_namespace"
 
 # List recent logs from the current namespace
