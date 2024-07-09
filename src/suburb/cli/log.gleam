@@ -49,7 +49,6 @@ pub fn list() -> glint.Command(Nil) {
 
   let params: List(String) =
     [
-      create_flag_item("namespace", Ok(envvars.namespace)),
       create_flag_item("source", source(flags)),
       create_flag_item("level", level(flags)),
       create_flag_item("from_time", from_time(flags)),
@@ -59,7 +58,7 @@ pub fn list() -> glint.Command(Nil) {
     |> list.filter(fn(x) { !string.is_empty(x) })
 
   let query_params = "?" <> string.join(params, "&")
-  let url = "/logs" <> query_params
+  let url = "/logs/" <> envvars.namespace <> query_params
 
   let decoder = fn(body: String) {
     body
@@ -71,7 +70,7 @@ pub fn list() -> glint.Command(Nil) {
     Ok(logs) -> {
       let values =
         list.map(logs, fn(l) {
-          [l.created_at, l.namespace, l.source, l.level, l.message]
+          [l.created_at, envvars.namespace, l.source, l.level, l.message]
         })
       let headers = ["TIMESTAMP", "NAMESPACE", "SOURCE", "LEVEL", "MESSAGE"]
       let col_sizes = [24, 16, 16, 12, 999]

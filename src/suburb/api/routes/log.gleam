@@ -8,10 +8,10 @@ import gleam/result
 import suburb/api/utils.{construct_response, extract_error}
 import suburb/api/web.{type Context}
 import suburb/coders/log as log_coder
-import suburb/services/log.{FromTime, Level, Namespace, Source, UntilTime}
+import suburb/services/log.{FromTime, Level, Source, UntilTime}
 import wisp.{type Request, type Response}
 
-pub fn list_route(req: Request, ctx: Context) -> Response {
+pub fn list_route(req: Request, ctx: Context, namespace: String) -> Response {
   use <- wisp.require_method(req, http.Get)
   let query_params = wisp.get_query(req)
 
@@ -19,7 +19,6 @@ pub fn list_route(req: Request, ctx: Context) -> Response {
     list.filter_map(query_params, fn(param) {
       let #(key, value) = param
       case key {
-        "namespace" -> Ok(Namespace(value))
         "source" -> Ok(Source(value))
         "level" -> Ok(Level(value))
         "from_time" -> Ok(FromTime(value))
@@ -38,11 +37,10 @@ pub fn list_route(req: Request, ctx: Context) -> Response {
     |> pair.second
     |> int.parse
 
-  case log.list(ctx.conn, filters, limit) {
+  case log.list(ctx.conn, namespace, filters, limit) {
     Ok(values) -> {
       json.array(values, fn(log) {
         json.object([
-          #("namespace", json.string(log.namespace)),
           #("source", json.string(log.source)),
           #("level", json.string(log.level)),
           #("message", json.string(log.message)),

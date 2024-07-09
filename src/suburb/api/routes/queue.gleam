@@ -5,7 +5,7 @@ import gleam/list
 import suburb/api/utils.{construct_response, extract_error}
 import suburb/api/web.{type Context}
 import suburb/coders/queue as queue_coder
-import suburb/services/queue.{Namespace, QueueName}
+import suburb/services/queue.{QueueName}
 import suburb/types.{EmptyQueue}
 import wisp.{type Request, type Response}
 
@@ -58,7 +58,7 @@ pub fn pop_route(
   }
 }
 
-pub fn list_route(req: Request, ctx: Context) -> Response {
+pub fn list_route(req: Request, ctx: Context, namespace: String) -> Response {
   use <- wisp.require_method(req, http.Get)
   let query_params = wisp.get_query(req)
 
@@ -66,42 +66,34 @@ pub fn list_route(req: Request, ctx: Context) -> Response {
     list.filter_map(query_params, fn(param) {
       let #(key, value) = param
       case key {
-        "namespace" -> Ok(Namespace(value))
         "queue" -> Ok(QueueName(value))
         _ -> Error(Nil)
       }
     })
 
-  case queue.list(ctx.conn, filters) {
+  case queue.list(ctx.conn, namespace, filters) {
     Ok(values) ->
       json.array(values, fn(log) {
-        json.object([
-          #("namespace", json.string(log.namespace)),
-          #("queue", json.string(log.queue)),
-        ])
+        json.object([#("queue", json.string(log.queue))])
       })
       |> construct_response("success", 200)
     Error(e) -> e |> extract_error |> construct_response("error", 404)
   }
 }
 
-pub fn create_route(req: Request, ctx: Context) -> Response {
+pub fn create_route(req: Request, ctx: Context, namespace: String) -> Response {
   use <- wisp.require_method(req, http.Post)
   use json <- wisp.require_json(req)
-  let namespace = json |> dynamic.field("namespace", dynamic.string)
   let queue = json |> dynamic.field("queue", dynamic.string)
 
-  case namespace, queue {
-    Ok(ns), Ok(q) -> {
-      case queue.create(ctx.conn, ns, q) {
+  case queue {
+    Ok(q) -> {
+      case queue.create(ctx.conn, namespace, q) {
         Ok(v) -> v |> queue_coder.encoder |> construct_response("success", 200)
         Error(e) -> e |> extract_error |> construct_response("error", 404)
       }
     }
-    _, Error(_) ->
-      json.string("Couldn't parse namespace")
-      |> construct_response("error", 400)
-    Error(_), _ ->
+    Error(_) ->
       json.string("Couldn't parse queue") |> construct_response("error", 400)
   }
 }

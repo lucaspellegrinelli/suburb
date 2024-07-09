@@ -1,12 +1,16 @@
+import gleam/bool
 import gleam/dynamic
 import gleam/list
 import gleam/pair
+import gleam/result
 import gleam/string
 import sqlight
-import suburb/types.{type Log, type ServiceError, ConnectorError, Log}
+import suburb/services/namespace.{namespace_is_created}
+import suburb/types.{
+  type Log, type ServiceError, ConnectorError, Log, ResourceDoesNotExist,
+}
 
 pub type LogFilters {
-  Namespace(String)
   Source(String)
   Level(String)
   FromTime(String)
@@ -14,26 +18,35 @@ pub type LogFilters {
 }
 
 const add_log = "
-  INSERT INTO logs (namespace, source, level, message)
-  VALUES (?, ?, ?, ?)
-  RETURNING namespace, source, level, message, created_at;
+  INSERT INTO logs (namespace_id, source, level, message)
+  VALUES (
+    (SELECT id FROM namespaces WHERE name = ?), ?, ?, ?
+  )
+  RETURNING source, level, message, created_at;
 "
 
 pub fn list(
   conn: sqlight.Connection,
+  namespace: String,
   filters: List(LogFilters),
   limit: Int,
 ) -> Result(List(Log), ServiceError) {
+  use exists <- result.try(namespace_is_created(conn, namespace))
+  use <- bool.guard(
+    !exists,
+    Error(ResourceDoesNotExist("Namespace " <> namespace <> " does not exist.")),
+  )
+
   let where_items =
     list.map(filters, fn(filter) {
       case filter {
-        Namespace(v) -> #("namespace = ?", sqlight.text(v))
-        Source(v) -> #("source = ?", sqlight.text(v))
-        Level(v) -> #("level = ?", sqlight.text(v))
-        FromTime(v) -> #("created_at >= ?", sqlight.text(v))
-        UntilTime(v) -> #("created_at <= ?", sqlight.text(v))
+        Source(v) -> #("l.source = ?", sqlight.text(v))
+        Level(v) -> #("l.level = ?", sqlight.text(v))
+        FromTime(v) -> #("l.created_at >= ?", sqlight.text(v))
+        UntilTime(v) -> #("l.created_at <= ?", sqlight.text(v))
       }
     })
+    |> list.append([#("n.name = ?", sqlight.text(namespace))])
 
   let where_keys = list.map(where_items, pair.first)
   let where_values = list.map(where_items, pair.second)
@@ -44,9 +57,9 @@ pub fn list(
   }
 
   let sql =
-    "SELECT namespace, source, level, message, created_at FROM logs "
+    "SELECT l.source, l.level, l.message, l.created_at FROM logs as l JOIN namespaces as n ON l.namespace_id = n.id "
     <> where_clause
-    <> " ORDER BY created_at DESC LIMIT ?"
+    <> " ORDER BY l.created_at DESC LIMIT ?"
 
   let vars = list.concat([where_values, [sqlight.int(limit)]])
 
@@ -55,13 +68,12 @@ pub fn list(
       sql,
       on: conn,
       with: vars,
-      expecting: dynamic.decode5(
+      expecting: dynamic.decode4(
         Log,
         dynamic.element(0, dynamic.string),
         dynamic.element(1, dynamic.string),
         dynamic.element(2, dynamic.string),
         dynamic.element(3, dynamic.string),
-        dynamic.element(4, dynamic.string),
       ),
     )
 
@@ -78,6 +90,12 @@ pub fn add(
   level: String,
   message: String,
 ) -> Result(Log, ServiceError) {
+  use exists <- result.try(namespace_is_created(conn, namespace))
+  use <- bool.guard(
+    !exists,
+    Error(ResourceDoesNotExist("Namespace " <> namespace <> " does not exist.")),
+  )
+
   let query =
     sqlight.query(
       add_log,
@@ -88,13 +106,12 @@ pub fn add(
         sqlight.text(level),
         sqlight.text(message),
       ],
-      expecting: dynamic.decode5(
+      expecting: dynamic.decode4(
         Log,
         dynamic.element(0, dynamic.string),
         dynamic.element(1, dynamic.string),
         dynamic.element(2, dynamic.string),
         dynamic.element(3, dynamic.string),
-        dynamic.element(4, dynamic.string),
       ),
     )
 

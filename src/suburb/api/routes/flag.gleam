@@ -5,10 +5,10 @@ import gleam/list
 import suburb/api/utils.{construct_response, extract_error}
 import suburb/api/web.{type Context}
 import suburb/coders/flag as flag_coder
-import suburb/services/flag.{Flag, Namespace}
+import suburb/services/flag.{Flag}
 import wisp.{type Request, type Response}
 
-pub fn list_route(req: Request, ctx: Context) -> Response {
+pub fn list_route(req: Request, ctx: Context, namespace: String) -> Response {
   use <- wisp.require_method(req, http.Get)
   let query_params = wisp.get_query(req)
 
@@ -16,17 +16,15 @@ pub fn list_route(req: Request, ctx: Context) -> Response {
     list.filter_map(query_params, fn(param) {
       let #(key, value) = param
       case key {
-        "namespace" -> Ok(Namespace(value))
         "flag" -> Ok(Flag(value))
         _ -> Error(Nil)
       }
     })
 
-  case flag.list(ctx.conn, filters) {
+  case flag.list(ctx.conn, namespace, filters) {
     Ok(values) ->
       json.array(values, fn(log) {
         json.object([
-          #("namespace", json.string(log.namespace)),
           #("flag", json.string(log.flag)),
           #("value", json.bool(log.value)),
         ])

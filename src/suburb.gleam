@@ -4,6 +4,7 @@ import suburb/cli/config
 import suburb/cli/flag
 import suburb/cli/host
 import suburb/cli/log
+import suburb/cli/namespace
 import suburb/cli/queue
 
 pub fn main() {
@@ -14,6 +15,10 @@ pub fn main() {
   |> glint.add(at: ["host"], do: host.host())
   // Configurations
   |> glint.add(at: ["config"], do: config.handle())
+  // Namespaces
+  |> glint.add(at: ["namespace"], do: namespace.list())
+  |> glint.add(at: ["namespace", "new"], do: namespace.create())
+  |> glint.add(at: ["namespace", "delete"], do: namespace.delete())
   // Queue operations
   |> glint.add(at: ["queue"], do: queue.list())
   |> glint.add(at: ["queue", "new"], do: queue.create())

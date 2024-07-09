@@ -45,7 +45,9 @@ pub fn list() -> glint.Command(Nil) {
     Error(e) -> io.println(e)
     Ok(flags) -> {
       let values =
-        list.map(flags, fn(l) { [l.namespace, l.flag, bool.to_string(l.value)] })
+        list.map(flags, fn(l) {
+          [envvars.namespace, l.flag, bool.to_string(l.value)]
+        })
       let headers = ["NAMESPACE", "FLAG", "VALUE"]
       let col_sizes = [16, 16, 999]
       print_table(headers, values, col_sizes)
@@ -74,7 +76,7 @@ pub fn set(value: Bool) -> glint.Command(Nil) {
   case make_request(url, http.Post, Some(body), decoder) {
     Error(e) -> io.println(e)
     Ok(f) -> {
-      let values = [[f.namespace, f.flag, bool.to_string(f.value)]]
+      let values = [[envvars.namespace, f.flag, bool.to_string(f.value)]]
       let headers = ["NAMESPACE", "FLAG", "VALUE"]
       let col_sizes = [16, 16, 999]
       print_table(headers, values, col_sizes)

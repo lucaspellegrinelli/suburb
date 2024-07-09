@@ -1,14 +1,17 @@
+pub type Namespace {
+  Namespace(name: String)
+}
+
 pub type Queue {
-  Queue(namespace: String, queue: String)
+  Queue(queue: String)
 }
 
 pub type FeatureFlag {
-  FeatureFlag(namespace: String, flag: String, value: Bool)
+  FeatureFlag(flag: String, value: Bool)
 }
 
 pub type Log {
   Log(
-    namespace: String,
     source: String,
     level: String,
     message: String,
